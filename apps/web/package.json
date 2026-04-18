@@ -1,0 +1,21 @@
+{
+  "name": "@ritmio/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ritmio/api-client": "workspace:*",
+    "@ritmio/contracts": "workspace:*",
+    "@ritmio/design-system": "workspace:*",
+    "@ritmio/utils": "workspace:*",
+    "@supabase/supabase-js": "^2.50.0",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

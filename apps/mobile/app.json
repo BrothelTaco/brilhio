@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Ritmio",
+    "slug": "ritmio",
+    "scheme": "ritmio",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
+

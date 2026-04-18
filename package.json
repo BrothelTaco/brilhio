@@ -1,0 +1,28 @@
+{
+  "name": "ritmio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Purpose-built monorepo foundation for an AI social media manager across web, mobile, API, worker, and marketing surfaces.",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:marketing\" \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "dev:web": "pnpm --filter @ritmio/web dev",
+    "dev:marketing": "pnpm --filter @ritmio/marketing dev",
+    "dev:mobile": "pnpm --filter @ritmio/mobile dev",
+    "dev:api": "pnpm --filter @ritmio/api dev",
+    "dev:worker": "pnpm --filter @ritmio/worker dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,308 @@
+import type {
+  AiSuggestion,
+  ApprovalTask,
+  AuthSession,
+  ContentItem,
+  DashboardSnapshot,
+  AuthenticatedUser,
+  JobRecord,
+  MediaAsset,
+  ScheduledPost,
+  SocialAccount,
+  UserProfile,
+  Workspace,
+} from "@ritmio/contracts";
+
+export const demoUser: AuthenticatedUser = {
+  id: "11111111-1111-1111-1111-111111111111",
+  email: "demo@ritmio.local",
+  authSource: "development",
+};
+
+export const demoWorkspace: Workspace = {
+  id: "workspace-ritmio",
+  name: "Ritmio Studio",
+  slug: "ritmio-studio",
+  timezone: "America/Denver",
+  ownerName: "Josh",
+  createdAt: "2026-04-17T08:00:00.000Z",
+};
+
+export const demoUserProfile: UserProfile = {
+  id: demoUser.id,
+  displayName: "Demo Operator",
+  email: demoUser.email,
+  currentWorkspaceId: demoWorkspace.id,
+};
+
+export const demoSocialAccounts: SocialAccount[] = [
+  {
+    id: "account-instagram",
+    workspaceId: demoWorkspace.id,
+    platform: "instagram",
+    handle: "@ritmiohq",
+    status: "connected",
+    audienceLabel: "Creator growth",
+    tokenExpiresAt: "2026-05-15T09:00:00.000Z",
+    providerAccountId: "17841400000000000",
+    providerAccountUrn: null,
+    profileUrl: "https://instagram.com/ritmiohq",
+  },
+  {
+    id: "account-facebook",
+    workspaceId: demoWorkspace.id,
+    platform: "facebook",
+    handle: "Ritmio Studio",
+    status: "connected",
+    audienceLabel: "Community updates",
+    tokenExpiresAt: "2026-06-02T12:00:00.000Z",
+    providerAccountId: "fb-page-2200481",
+    providerAccountUrn: null,
+    profileUrl: "https://facebook.com/ritmio",
+  },
+  {
+    id: "account-tiktok",
+    workspaceId: demoWorkspace.id,
+    platform: "tiktok",
+    handle: "@ritmiotips",
+    status: "attention_required",
+    audienceLabel: "Short-form discovery",
+    tokenExpiresAt: "2026-04-20T12:00:00.000Z",
+    providerAccountId: "704422881199001",
+    providerAccountUrn: null,
+    profileUrl: "https://www.tiktok.com/@ritmiotips",
+  },
+  {
+    id: "account-x",
+    workspaceId: demoWorkspace.id,
+    platform: "x",
+    handle: "@ritmioapp",
+    status: "connected",
+    audienceLabel: "Product updates",
+    tokenExpiresAt: null,
+    providerAccountId: "987654321",
+    providerAccountUrn: null,
+    profileUrl: "https://x.com/ritmioapp",
+  },
+];
+
+export const demoMediaAssets: MediaAsset[] = [
+  {
+    id: "asset-1",
+    workspaceId: demoWorkspace.id,
+    kind: "video",
+    title: "Batch creation walkthrough",
+    storagePath: "media/batch-walkthrough.mp4",
+    altText: "Screen recording showing weekly scheduling",
+    durationSeconds: 42,
+    createdAt: "2026-04-16T16:20:00.000Z",
+  },
+  {
+    id: "asset-2",
+    workspaceId: demoWorkspace.id,
+    kind: "image",
+    title: "Analytics snapshot",
+    storagePath: "media/analytics-snapshot.png",
+    altText: "Weekly analytics dashboard card",
+    durationSeconds: null,
+    createdAt: "2026-04-16T16:45:00.000Z",
+  },
+];
+
+export const demoContentItems: ContentItem[] = [
+  {
+    id: "content-1",
+    workspaceId: demoWorkspace.id,
+    title: "Launch teaser",
+    brief: "Announce the product's weekly calendar autopilot.",
+    campaign: "Spring launch",
+    stage: "approved",
+    mediaAssetIds: ["asset-1"],
+    primaryCaption: "Your content calendar should feel like an operator panel, not a spreadsheet.",
+    createdAt: "2026-04-16T17:00:00.000Z",
+  },
+  {
+    id: "content-2",
+    workspaceId: demoWorkspace.id,
+    title: "Analytics proof point",
+    brief: "Show why timing recommendations matter across platforms.",
+    campaign: "Spring launch",
+    stage: "ready_for_review",
+    mediaAssetIds: ["asset-2"],
+    primaryCaption: "Posting at the right time compounds faster than posting more often.",
+    createdAt: "2026-04-16T18:10:00.000Z",
+  },
+];
+
+export const demoScheduledPosts: ScheduledPost[] = [
+  {
+    id: "post-1",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-1",
+    platform: "instagram",
+    scheduledFor: "2026-04-20T15:30:00.000Z",
+    status: "scheduled",
+    platformCaption: "A weekly plan that adapts to your content velocity.",
+    publishWindowLabel: "Mon / 9:30 AM MT",
+    providerPostId: null,
+    errorMessage: null,
+  },
+  {
+    id: "post-2",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-1",
+    platform: "facebook",
+    scheduledFor: "2026-04-21T16:00:00.000Z",
+    status: "scheduled",
+    platformCaption: "Turn approved media into a predictable weekly publishing system.",
+    publishWindowLabel: "Tue / 10:00 AM MT",
+    providerPostId: null,
+    errorMessage: null,
+  },
+  {
+    id: "post-3",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-2",
+    platform: "x",
+    scheduledFor: "2026-04-23T18:15:00.000Z",
+    status: "queued",
+    platformCaption: "Great content still needs great timing.",
+    publishWindowLabel: "Thu / 12:15 PM MT",
+    providerPostId: null,
+    errorMessage: null,
+  },
+  {
+    id: "post-4",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-2",
+    platform: "tiktok",
+    scheduledFor: "2026-04-24T21:00:00.000Z",
+    status: "paused",
+    platformCaption: "When your schedule knows the platform, your team stops guessing.",
+    publishWindowLabel: "Fri / 3:00 PM MT",
+    providerPostId: null,
+    errorMessage: "Waiting for TikTok token refresh before publish.",
+  },
+];
+
+export const demoAiSuggestions: AiSuggestion[] = [
+  {
+    id: "suggestion-1",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-1",
+    type: "publish_window",
+    title: "Push Facebook later in the morning",
+    body: "Community updates in your workspace perform best between 9:45 AM and 10:30 AM local time.",
+    createdAt: "2026-04-17T08:30:00.000Z",
+  },
+  {
+    id: "suggestion-2",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-2",
+    type: "caption",
+    title: "Swap a stronger opening hook",
+    body: "Lead with the business outcome first: fewer missed windows, fewer manual handoffs, clearer weekly pacing.",
+    createdAt: "2026-04-17T09:05:00.000Z",
+  },
+];
+
+export const demoApprovalTasks: ApprovalTask[] = [
+  {
+    id: "approval-1",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-2",
+    reviewerUserId: null,
+    reviewerName: "Creative lead",
+    dueAt: "2026-04-18T16:00:00.000Z",
+    status: "pending",
+    note: "Check whether the analytics screenshot needs an updated KPI callout.",
+  },
+  {
+    id: "approval-2",
+    workspaceId: demoWorkspace.id,
+    contentItemId: "content-1",
+    reviewerUserId: null,
+    reviewerName: "Founder",
+    dueAt: "2026-04-17T19:00:00.000Z",
+    status: "approved",
+    note: "Approved for Instagram and Facebook with current captions.",
+  },
+];
+
+export const demoJobs: JobRecord[] = [
+  {
+    id: "job-1",
+    workspaceId: demoWorkspace.id,
+    type: "generate-caption",
+    status: "completed",
+    targetTable: "content_items",
+    targetId: "content-2",
+    attemptCount: 1,
+    scheduledFor: "2026-04-17T08:50:00.000Z",
+    createdAt: "2026-04-17T08:49:00.000Z",
+    bullmqJobId: "bullmq-job-1",
+    lastError: null,
+    payload: {
+      type: "generate-caption",
+      contentItemId: "content-2",
+      jobRecordId: "job-1",
+      workspaceId: demoWorkspace.id,
+    },
+  },
+  {
+    id: "job-2",
+    workspaceId: demoWorkspace.id,
+    type: "publish-scheduled-post",
+    status: "queued",
+    targetTable: "scheduled_posts",
+    targetId: "post-1",
+    attemptCount: 0,
+    scheduledFor: "2026-04-20T15:30:00.000Z",
+    createdAt: "2026-04-17T09:00:00.000Z",
+    bullmqJobId: null,
+    lastError: null,
+    payload: {
+      type: "publish-scheduled-post",
+      scheduledPostId: "post-1",
+      jobRecordId: "job-2",
+      workspaceId: demoWorkspace.id,
+    },
+  },
+  {
+    id: "job-3",
+    workspaceId: demoWorkspace.id,
+    type: "refresh-social-token",
+    status: "retrying",
+    targetTable: "social_accounts",
+    targetId: "account-tiktok",
+    attemptCount: 2,
+    scheduledFor: "2026-04-18T12:00:00.000Z",
+    createdAt: "2026-04-17T10:30:00.000Z",
+    bullmqJobId: null,
+    lastError: "Refresh token rejected by provider.",
+    payload: {
+      type: "refresh-social-token",
+      socialAccountId: "account-tiktok",
+      jobRecordId: "job-3",
+      workspaceId: demoWorkspace.id,
+    },
+  },
+];
+
+export const demoAuthSession: AuthSession = {
+  user: demoUser,
+  profile: demoUserProfile,
+  workspaces: [demoWorkspace],
+  currentWorkspaceId: demoWorkspace.id,
+};
+
+export const demoDashboardSnapshot: DashboardSnapshot = {
+  workspace: demoWorkspace,
+  socialAccounts: demoSocialAccounts,
+  mediaAssets: demoMediaAssets,
+  contentItems: demoContentItems,
+  scheduledPosts: demoScheduledPosts,
+  aiSuggestions: demoAiSuggestions,
+  approvalTasks: demoApprovalTasks,
+  jobs: demoJobs,
+};

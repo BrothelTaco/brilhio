@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@ritmio/api-client": ["packages/api-client/src/index.ts"],
+      "@ritmio/backend": ["packages/backend/src/index.ts"],
+      "@ritmio/contracts": ["packages/contracts/src/index.ts"],
+      "@ritmio/design-system": ["packages/design-system/src/index.ts"],
+      "@ritmio/utils": ["packages/utils/src/index.ts"]
+    }
+  }
+}

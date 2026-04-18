@@ -1,0 +1,14 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@ritmio/api-client": ["../../packages/api-client/src/index.ts"],
+      "@ritmio/backend": ["../../packages/backend/src/index.ts"],
+      "@ritmio/contracts": ["../../packages/contracts/src/index.ts"],
+      "@ritmio/design-system": ["../../packages/design-system/src/index.ts"],
+      "@ritmio/utils": ["../../packages/utils/src/index.ts"]
+    }
+  }
+}
