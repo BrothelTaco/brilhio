@@ -1,20 +1,44 @@
 :root {
-  --ritmio-ink: #08111f;
-  --ritmio-canvas: #f7f1e7;
-  --ritmio-panel: #fffdf8;
-  --ritmio-primary: #2563eb;
-  --ritmio-primary-dark: #173ea5;
-  --ritmio-accent: #ff7a18;
-  --ritmio-mint: #0ea5a4;
-  --ritmio-line: #d8d0c4;
-  --ritmio-text: #1e293b;
-  --ritmio-muted: #6b7280;
-  --ritmio-success: #167c48;
-  --ritmio-warning: #b25a00;
-  --ritmio-radius-sm: 12px;
-  --ritmio-radius-md: 18px;
-  --ritmio-radius-lg: 28px;
-  --ritmio-shadow: 0 24px 60px rgba(8, 17, 31, 0.08);
+  --brilhio-ink: #000000;
+  --brilhio-canvas: #080808;
+  --brilhio-panel: #111111;
+  --brilhio-primary: #1e3a5f;
+  --brilhio-primary-dark: #0d1f38;
+  --brilhio-accent: #1e3a5f;
+  --brilhio-mint: #1a2e4a;
+  --brilhio-line: #222222;
+  --brilhio-text: #f0f0f0;
+  --brilhio-muted: #666666;
+  --brilhio-success: #1a8a52;
+  --brilhio-warning: #c9920a;
+  --brilhio-radius-sm: 12px;
+  --brilhio-radius-md: 18px;
+  --brilhio-radius-lg: 28px;
+  --brilhio-shadow: 0 24px 60px rgba(0, 0, 0, 0.70);
+  --brilhio-bg-base: #000000;
+  --brilhio-bg-glow: color-mix(in srgb, #1e3a5f 5%, transparent);
+  --brilhio-bg-glow-2: color-mix(in srgb, #0d1f38 6%, transparent);
+  --brilhio-button-text: #ffffff;
+}
+
+[data-theme="light"] {
+  --brilhio-ink: #ffffff;
+  --brilhio-canvas: #f5f5f5;
+  --brilhio-panel: #ebebeb;
+  --brilhio-primary: #1e3a5f;
+  --brilhio-primary-dark: #0d1f38;
+  --brilhio-accent: #1e3a5f;
+  --brilhio-mint: #1a2e4a;
+  --brilhio-line: #d0d0d0;
+  --brilhio-text: #0a0a0a;
+  --brilhio-muted: #666666;
+  --brilhio-success: #15803d;
+  --brilhio-warning: #a16207;
+  --brilhio-shadow: 0 24px 60px rgba(0, 0, 0, 0.10);
+  --brilhio-bg-base: #f5f5f5;
+  --brilhio-bg-glow: color-mix(in srgb, #1e3a5f 4%, transparent);
+  --brilhio-bg-glow-2: color-mix(in srgb, #0d1f38 5%, transparent);
+  --brilhio-button-text: #ffffff;
 }
 
 * {
@@ -29,10 +53,10 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 28%),
-    radial-gradient(circle at top right, rgba(255, 122, 24, 0.14), transparent 22%),
-    linear-gradient(180deg, #fffaf0 0%, var(--ritmio-canvas) 100%);
-  color: var(--ritmio-text);
+    radial-gradient(circle at top left, var(--brilhio-bg-glow), transparent 28%),
+    radial-gradient(circle at top right, var(--brilhio-bg-glow-2), transparent 22%),
+    linear-gradient(180deg, var(--brilhio-bg-base) 0%, var(--brilhio-canvas) 100%);
+  color: var(--brilhio-text);
   font-family:
     Inter,
     ui-sans-serif,
@@ -54,19 +78,19 @@ textarea {
   font: inherit;
 }
 
-.ritmio-shell {
+.brilhio-shell {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
 }
 
-.ritmio-card {
-  background: color-mix(in srgb, var(--ritmio-panel) 92%, white 8%);
-  border: 1px solid color-mix(in srgb, var(--ritmio-line) 84%, white 16%);
-  border-radius: var(--ritmio-radius-lg);
-  box-shadow: var(--ritmio-shadow);
+.brilhio-card {
+  background: color-mix(in srgb, var(--brilhio-panel) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--brilhio-line) 84%, white 16%);
+  border-radius: var(--brilhio-radius-lg);
+  box-shadow: var(--brilhio-shadow);
 }
 
-.ritmio-pill {
+.brilhio-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -74,11 +98,11 @@ textarea {
   padding: 8px 14px;
   font-size: 0.875rem;
   font-weight: 600;
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--ritmio-primary-dark);
+  background: color-mix(in srgb, var(--brilhio-accent) 12%, transparent);
+  color: var(--brilhio-accent);
 }
 
-.ritmio-button {
+.brilhio-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -90,22 +114,21 @@ textarea {
   cursor: pointer;
 }
 
-.ritmio-button-primary {
-  color: white;
-  background: linear-gradient(135deg, var(--ritmio-primary) 0%, var(--ritmio-primary-dark) 100%);
+.brilhio-button-primary {
+  color: var(--brilhio-button-text);
+  background: linear-gradient(135deg, var(--brilhio-accent) 0%, var(--brilhio-primary-dark) 100%);
 }
 
-.ritmio-button-secondary {
-  color: var(--ritmio-text);
-  background: rgba(8, 17, 31, 0.05);
-  border: 1px solid rgba(8, 17, 31, 0.08);
+.brilhio-button-secondary {
+  color: var(--brilhio-text);
+  background: color-mix(in srgb, var(--brilhio-text) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brilhio-text) 14%, transparent);
 }
 
-.ritmio-eyebrow {
+.brilhio-eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--ritmio-muted);
+  color: var(--brilhio-muted);
 }
-

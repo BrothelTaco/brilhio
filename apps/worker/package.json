@@ -1,16 +1,16 @@
 {
-  "name": "@ritmio/worker",
+  "name": "@brilhio/worker",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "pnpm typecheck",
+    "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ritmio/backend": "workspace:*",
-    "@ritmio/contracts": "workspace:*",
+    "@brilhio/backend": "workspace:*",
+    "@brilhio/contracts": "workspace:*",
     "bullmq": "^5.58.0"
   },
   "devDependencies": {

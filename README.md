@@ -1,6 +1,6 @@
-# Ritmio
+# Brilhio
 
-Ritmio is a purpose-built monorepo foundation for an AI social media manager that ships across:
+Brilhio is a purpose-built monorepo foundation for an AI social media manager that ships across:
 
 - a product web app
 - a public marketing site

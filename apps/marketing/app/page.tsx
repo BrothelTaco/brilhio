@@ -50,12 +50,14 @@ const audiences = [
   "Operators who need a desktop command center first",
 ] as const;
 
+const webAppBaseUrl = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "http://localhost:3000";
+
 export default function MarketingHome() {
   return (
     <main className="marketing-page">
-      <header className="ritmio-shell marketing-topbar">
+      <header className="brilhio-shell marketing-topbar">
         <a href="#" className="marketing-brand">
-          Ritmio
+          Brilhio
         </a>
         <nav className="marketing-nav" aria-label="Marketing navigation">
           <a href="#workflow">Workflow</a>
@@ -63,32 +65,32 @@ export default function MarketingHome() {
           <a href="#audience">Who it is for</a>
         </nav>
         <div className="marketing-actions">
-          <button className="ritmio-button ritmio-button-secondary" type="button">
+          <a href="#final-cta" className="brilhio-button brilhio-button-secondary">
             Request access
-          </button>
-          <button className="ritmio-button ritmio-button-primary" type="button">
+          </a>
+          <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-primary">
             View desktop scaffold
-          </button>
+          </a>
         </div>
       </header>
 
-      <section className="ritmio-shell marketing-hero">
+      <section className="brilhio-shell marketing-hero">
         <div className="hero-panel">
-          <span className="ritmio-pill">Desktop-first AI social operations</span>
+          <span className="brilhio-pill">Desktop-first AI social operations</span>
           <h1>Turn content chaos into a weekly publishing control room.</h1>
           <p>
-            Ritmio is built for teams that want one desktop workspace for
+            Brilhio is built for teams that want one desktop workspace for
             planning, media intake, connected accounts, and AI-guided timing
             before they split energy into mobile polish.
           </p>
 
           <div className="hero-actions">
-            <button className="ritmio-button ritmio-button-primary" type="button">
+            <a href="#final-cta" className="brilhio-button brilhio-button-primary">
               Join the alpha
-            </button>
-            <button className="ritmio-button ritmio-button-secondary" type="button">
+            </a>
+            <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-secondary">
               See the planner
-            </button>
+            </a>
           </div>
 
           <div className="proof-grid">
@@ -101,7 +103,7 @@ export default function MarketingHome() {
           </div>
         </div>
 
-        <div className="hero-preview ritmio-card">
+        <div className="hero-preview brilhio-card">
           <div className="preview-window">
             <div className="window-bar">
               <span />
@@ -111,7 +113,7 @@ export default function MarketingHome() {
 
             <div className="preview-board">
               <div className="preview-column">
-                <p className="ritmio-eyebrow">Weekly board</p>
+                <p className="brilhio-eyebrow">Weekly board</p>
                 <article className="preview-module preview-module-primary">
                   <strong>Tue / 10:30 AM</strong>
                   <p>Founder workflow reel queued for Instagram.</p>
@@ -123,7 +125,7 @@ export default function MarketingHome() {
               </div>
 
               <div className="preview-column">
-                <p className="ritmio-eyebrow">AI lane</p>
+                <p className="brilhio-eyebrow">AI lane</p>
                 <article className="preview-module preview-module-accent">
                   <strong>Media intake</strong>
                   <p>Upload assets for timing analysis and platform fit.</p>
@@ -138,9 +140,9 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      <section id="workflow" className="ritmio-shell workflow-grid">
+      <section id="workflow" className="brilhio-shell workflow-grid">
         {workflowSteps.map((step, index) => (
-          <article key={step.title} className="ritmio-card workflow-card">
+          <article key={step.title} className="brilhio-card workflow-card">
             <span className="workflow-index">0{index + 1}</span>
             <h2>{step.title}</h2>
             <p>{step.body}</p>
@@ -148,9 +150,9 @@ export default function MarketingHome() {
         ))}
       </section>
 
-      <section id="product" className="ritmio-shell product-story">
-        <div className="story-copy ritmio-card">
-          <p className="ritmio-eyebrow">Product structure</p>
+      <section id="product" className="brilhio-shell product-story">
+        <div className="story-copy brilhio-card">
+          <p className="brilhio-eyebrow">Product structure</p>
           <h2>Built around the screens that matter most at the start.</h2>
           <p>
             The first wave is deliberately simple: a marketing site, a login and
@@ -162,8 +164,8 @@ export default function MarketingHome() {
 
         <div className="story-lanes">
           {productLanes.map((lane) => (
-            <article key={lane.title} className="ritmio-card story-card">
-              <p className="ritmio-eyebrow">Lane</p>
+            <article key={lane.title} className="brilhio-card story-card">
+              <p className="brilhio-eyebrow">Lane</p>
               <h3>{lane.title}</h3>
               <p>{lane.body}</p>
             </article>
@@ -171,9 +173,9 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      <section id="audience" className="ritmio-shell audience-section ritmio-card">
+      <section id="audience" className="brilhio-shell audience-section brilhio-card">
         <div>
-          <p className="ritmio-eyebrow">Who this is for</p>
+          <p className="brilhio-eyebrow">Who this is for</p>
           <h2>Teams that need structure before scale.</h2>
         </div>
         <div className="audience-grid">
@@ -185,9 +187,9 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      <section className="ritmio-shell final-cta">
+      <section id="final-cta" className="brilhio-shell final-cta">
         <div className="cta-panel">
-          <p className="ritmio-eyebrow">Next up</p>
+          <p className="brilhio-eyebrow">Next up</p>
           <h2>Dial in the desktop experience, then translate the best parts to mobile.</h2>
           <p>
             The desktop planner should feel complete first. Once the weekly
@@ -195,12 +197,15 @@ export default function MarketingHome() {
             instead of a compromised primary surface.
           </p>
           <div className="hero-actions">
-            <button className="ritmio-button ritmio-button-primary" type="button">
+            <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-primary">
               Start with web
-            </button>
-            <button className="ritmio-button ritmio-button-secondary" type="button">
+            </a>
+            <a
+              href={`${webAppBaseUrl}/dashboard`}
+              className="brilhio-button brilhio-button-secondary"
+            >
               Review product pages
-            </button>
+            </a>
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 {
-  "name": "@ritmio/utils",
+  "name": "@brilhio/utils",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,11 +9,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "pnpm typecheck",
+    "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ritmio/contracts": "workspace:*"
+    "@brilhio/contracts": "workspace:*"
   }
 }
 

@@ -2,11 +2,11 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   getProviderDefinition,
   providerCatalog,
-} from "@ritmio/backend";
+} from "@brilhio/backend";
 import {
   createProviderConnectionInputSchema,
   platformSchema,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
 import { ensureWorkspaceAccess } from "../auth";
 
 export const providerRoutes: FastifyPluginAsync = async (app) => {
@@ -32,8 +32,8 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         workspaceId,
       );
 
@@ -46,7 +46,7 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
 
       const accounts = await Promise.all(
         providerCatalog.map((provider) =>
-          app.ritmio.repository.getSocialAccount(workspaceId, provider.platform),
+          app.brilhio.repository.getSocialAccount(workspaceId, provider.platform),
         ),
       );
 
@@ -87,8 +87,8 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -105,7 +105,7 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
         };
       }
 
-      const account = await app.ritmio.repository.upsertSocialAccountConnection({
+      const account = await app.brilhio.repository.upsertSocialAccountConnection({
         ...parsed.data,
         accessToken:
           parsed.data.accessToken ??

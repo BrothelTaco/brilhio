@@ -1,4 +1,4 @@
-# Ritmio Marketing
+# Brilhio Marketing
 
 Public-facing landing site for:
 
@@ -9,6 +9,6 @@ Public-facing landing site for:
 ## Run
 
 ```bash
-pnpm --filter @ritmio/marketing dev
+pnpm --filter @brilhio/marketing dev
 ```
 

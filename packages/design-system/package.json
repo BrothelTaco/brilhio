@@ -1,5 +1,5 @@
 {
-  "name": "@ritmio/design-system",
+  "name": "@brilhio/design-system",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "./web.css": "./web.css"
   },
   "scripts": {
-    "build": "pnpm typecheck",
+    "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

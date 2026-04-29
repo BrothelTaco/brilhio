@@ -1,17 +1,17 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
-  createRitmioQueue,
+  createBrilhioQueue,
   getQueueDelay,
   isQueueConfigured,
   MemoryRepository,
   SupabaseRepository,
   type Repository,
-} from "@ritmio/backend";
+} from "@brilhio/backend";
 import type {
   JobPayload,
   JobRecord,
   QueueJobInput,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
 
 export type AppConfig = {
   port: number;
@@ -31,7 +31,7 @@ export type AppContext = {
   config: AppConfig;
   repository: Repository;
   supabaseAdmin: SupabaseClient | null;
-  queue: ReturnType<typeof createRitmioQueue> | null;
+  queue: ReturnType<typeof createBrilhioQueue> | null;
 };
 
 export function readAppConfig(env = process.env): AppConfig {
@@ -39,14 +39,14 @@ export function readAppConfig(env = process.env): AppConfig {
     port: Number(env.PORT ?? 4000),
     host: env.HOST ?? "0.0.0.0",
     allowDevAuth: env.ALLOW_DEV_AUTH !== "false",
-    devUserId: env.RITMIO_DEV_USER_ID ?? null,
-    devUserEmail: env.RITMIO_DEV_USER_EMAIL ?? null,
+    devUserId: env.BRILHIO_DEV_USER_ID ?? null,
+    devUserEmail: env.BRILHIO_DEV_USER_EMAIL ?? null,
     supabaseUrl: env.SUPABASE_URL ?? null,
     supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY ?? null,
     encryptionSecret:
       env.APP_ENCRYPTION_KEY ??
       env.SUPABASE_SERVICE_ROLE_KEY ??
-      "ritmio-local-secret",
+      "brilhio-local-secret",
     redisUrl: env.REDIS_URL ?? null,
     webAppUrl: env.WEB_APP_URL ?? null,
     storageBucket: env.SUPABASE_STORAGE_BUCKET ?? "media-assets",
@@ -76,7 +76,7 @@ export function createAppContext(config = readAppConfig()): AppContext {
     : null;
 
   const queue = isQueueConfigured(config.redisUrl)
-    ? createRitmioQueue(config.redisUrl!)
+    ? createBrilhioQueue(config.redisUrl!)
     : null;
 
   return {

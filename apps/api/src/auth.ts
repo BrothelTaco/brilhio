@@ -1,5 +1,5 @@
 import type { FastifyRequest } from "fastify";
-import type { AuthSession, AuthenticatedUser } from "@ritmio/contracts";
+import type { AuthSession, AuthenticatedUser } from "@brilhio/contracts";
 import type { AppContext } from "./context";
 
 type ResolvedAuth = {
@@ -45,8 +45,8 @@ function resolveDevUser(
     return null;
   }
 
-  const headerUserId = request.headers["x-ritmio-dev-user-id"];
-  const headerUserEmail = request.headers["x-ritmio-dev-user-email"];
+  const headerUserId = request.headers["x-brilhio-dev-user-id"];
+  const headerUserEmail = request.headers["x-brilhio-dev-user-email"];
 
   const userId =
     (typeof headerUserId === "string" ? headerUserId : null) ??

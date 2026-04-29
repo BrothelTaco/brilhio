@@ -1,4 +1,4 @@
-# Ritmio Worker
+# Brilhio Worker
 
 Dedicated background execution surface for:
 
@@ -18,5 +18,5 @@ Dedicated background execution surface for:
 ## Run
 
 ```bash
-pnpm --filter @ritmio/worker dev
+pnpm --filter @brilhio/worker dev
 ```

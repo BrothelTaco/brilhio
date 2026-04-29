@@ -4,8 +4,8 @@ import {
   MemoryRepository,
   SupabaseRepository,
   type Repository,
-} from "@ritmio/backend";
-import type { JobPayload } from "@ritmio/contracts";
+} from "@brilhio/backend";
+import type { JobPayload } from "@brilhio/contracts";
 
 export type WorkerConfig = Record<string, never>;
 
@@ -40,7 +40,7 @@ async function buildCaptionSuggestion(
     type: "caption",
     title: `AI caption direction for ${contentItem.title}`,
     body: `Lead with the business outcome from "${contentItem.brief}", keep the first sentence shorter than the current draft, and close with a platform-specific CTA. Draft anchor: ${contentItem.primaryCaption}`,
-    modelName: "ritmio-heuristic-v1",
+    modelName: "brilhio-heuristic-v1",
     sourceJobId: payload.jobRecordId,
   });
 
@@ -62,7 +62,7 @@ async function buildPlatformVariants(
     type: "content_idea",
     title: `Platform variants ready for ${contentItem.title}`,
     body: "Create an Instagram version focused on visual pacing, then a shorter X version that sharpens the hook and CTA.",
-    modelName: "ritmio-heuristic-v1",
+    modelName: "brilhio-heuristic-v1",
     sourceJobId: payload.jobRecordId,
   });
 
@@ -86,7 +86,7 @@ async function buildCalendarHint(
       type: "publish_window",
       title: "Weekly calendar refreshed",
       body: "Cluster educational content earlier in the week and reserve launch-style posts for late-morning Instagram and Facebook windows.",
-      modelName: "ritmio-heuristic-v1",
+      modelName: "brilhio-heuristic-v1",
       sourceJobId: payload.jobRecordId,
     });
   }

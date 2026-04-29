@@ -1,5 +1,5 @@
 {
-  "name": "ritmio",
+  "name": "brilhio",
   "private": true,
   "version": "0.1.0",
   "description": "Purpose-built monorepo foundation for an AI social media manager across web, mobile, API, worker, and marketing surfaces.",
@@ -9,14 +9,14 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:marketing\" \"pnpm dev:api\" \"pnpm dev:worker\"",
-    "dev:web": "pnpm --filter @ritmio/web dev",
-    "dev:marketing": "pnpm --filter @ritmio/marketing dev",
-    "dev:mobile": "pnpm --filter @ritmio/mobile dev",
-    "dev:api": "pnpm --filter @ritmio/api dev",
-    "dev:worker": "pnpm --filter @ritmio/worker dev",
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "dev": "concurrently \"corepack pnpm dev:web\" \"corepack pnpm dev:marketing\" \"corepack pnpm dev:api\" \"corepack pnpm dev:worker\"",
+    "dev:web": "corepack pnpm --filter @brilhio/web dev",
+    "dev:marketing": "corepack pnpm --filter @brilhio/marketing dev",
+    "dev:mobile": "corepack pnpm --filter @brilhio/mobile dev",
+    "dev:api": "corepack pnpm --filter @brilhio/api dev",
+    "dev:worker": "corepack pnpm --filter @brilhio/worker dev",
+    "build": "corepack pnpm -r build",
+    "typecheck": "corepack pnpm -r typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

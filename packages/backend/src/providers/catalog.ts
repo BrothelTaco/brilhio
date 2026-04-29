@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Platform, ProviderCatalogItem } from "@ritmio/contracts";
+import type { Platform, ProviderCatalogItem } from "@brilhio/contracts";
 
 export const providerCatalog: Array<Omit<ProviderCatalogItem, "account">> = [
   {

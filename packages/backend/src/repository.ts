@@ -19,7 +19,7 @@ import type {
   SchedulePostInput,
   SocialAccount,
   Workspace,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
 import {
   demoAiSuggestions,
   demoApprovalTasks,
@@ -31,7 +31,7 @@ import {
   demoScheduledPosts,
   demoSocialAccounts,
   demoWorkspace,
-} from "@ritmio/utils";
+} from "@brilhio/utils";
 import { decryptSecret, encryptSecret } from "./crypto";
 import type {
   CreateAiSuggestionParams,
@@ -58,11 +58,11 @@ function ensureDateString(value: string | null | undefined) {
 
 function firstNameFromEmail(email: string | null) {
   if (!email) {
-    return "Ritmio";
+    return "Brilhio";
   }
 
   const [candidate] = email.split("@");
-  return candidate ? candidate.replace(/[._-]+/g, " ") : "Ritmio";
+  return candidate ? candidate.replace(/[._-]+/g, " ") : "Brilhio";
 }
 
 function mapWorkspace(row: {
@@ -297,6 +297,24 @@ export class MemoryRepository implements Repository {
 
   async userHasWorkspaceAccess(_userId: string, workspaceId: string) {
     return this.session.workspaces.some((workspace) => workspace.id === workspaceId);
+  }
+
+  async getWorkspace(workspaceId: string): Promise<Workspace | null> {
+    return this.session.workspaces.find((w) => w.id === workspaceId) ?? null;
+  }
+
+  async updateWorkspaceTimezone(workspaceId: string, timezone: string): Promise<Workspace | null> {
+    const workspace = this.session.workspaces.find((w) => w.id === workspaceId);
+    if (!workspace) return null;
+    workspace.timezone = timezone;
+    return structuredClone(workspace);
+  }
+
+  async listOverdueJobRecords(): Promise<JobRecord[]> {
+    const now = new Date().toISOString();
+    return this.jobs.filter(
+      (job) => job.status === "queued" && job.scheduledFor <= now,
+    );
   }
 
   async getDashboard(workspaceId: string): Promise<DashboardSnapshot | null> {
@@ -723,6 +741,43 @@ export class SupabaseRepository implements Repository {
     }
 
     return Boolean(data?.id);
+  }
+
+  async getWorkspace(workspaceId: string): Promise<Workspace | null> {
+    const { data, error } = await this.supabase
+      .from("workspaces")
+      .select("id, name, slug, timezone, created_at, owner_user_id")
+      .eq("id", workspaceId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data ? mapWorkspace({ ...data, owner_name: null }) : null;
+  }
+
+  async updateWorkspaceTimezone(workspaceId: string, timezone: string): Promise<Workspace | null> {
+    const { data, error } = await this.supabase
+      .from("workspaces")
+      .update({ timezone })
+      .eq("id", workspaceId)
+      .select("id, name, slug, timezone, created_at, owner_user_id")
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data ? mapWorkspace({ ...data, owner_name: null }) : null;
+  }
+
+  async listOverdueJobRecords(): Promise<JobRecord[]> {
+    const { data, error } = await this.supabase
+      .from("job_records")
+      .select(
+        "id, workspace_id, type, status, target_table, target_id, attempt_count, scheduled_for, created_at, bullmq_job_id, last_error, payload",
+      )
+      .eq("status", "queued")
+      .lte("scheduled_for", new Date().toISOString())
+      .is("bullmq_job_id", null);
+
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapJobRecord);
   }
 
   async getDashboard(workspaceId: string): Promise<DashboardSnapshot | null> {
@@ -1349,7 +1404,7 @@ export class SupabaseRepository implements Repository {
       .insert({
         name: workspaceName,
         slug: `${slugify(workspaceName)}-${randomUUID().slice(0, 8)}`,
-        timezone: "America/Denver",
+        timezone: "UTC",
         owner_user_id: user.id,
       })
       .select("id")

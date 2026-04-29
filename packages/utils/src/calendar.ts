@@ -1,4 +1,4 @@
-import type { ScheduledPost } from "@ritmio/contracts";
+import type { ScheduledPost } from "@brilhio/contracts";
 
 const dayFormatter = new Intl.DateTimeFormat("en-US", {
   weekday: "short",

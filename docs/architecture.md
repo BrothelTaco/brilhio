@@ -1,4 +1,4 @@
-# Ritmio Architecture
+# Brilhio Architecture
 
 ## Surfaces
 

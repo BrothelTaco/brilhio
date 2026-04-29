@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "@ritmio/design-system/web.css";
+import "@brilhio/design-system/web.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ritmio",
+  title: "Brilhio",
   description: "AI social media manager for teams that need scheduling, approvals, AI suggestions, and multi-platform delivery.",
 };
 

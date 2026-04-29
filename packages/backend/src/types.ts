@@ -18,7 +18,8 @@ import type {
   SchedulePostInput,
   SocialAccount,
   Workspace,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
+
 
 export type RepositoryMode = "supabase" | "memory";
 
@@ -67,12 +68,15 @@ export interface Repository {
   ): Promise<AuthSession>;
   listWorkspacesForUser(userId: string): Promise<Workspace[]>;
   userHasWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean>;
+  getWorkspace(workspaceId: string): Promise<Workspace | null>;
+  updateWorkspaceTimezone(workspaceId: string, timezone: string): Promise<Workspace | null>;
+  listOverdueJobRecords(): Promise<JobRecord[]>;
   getDashboard(workspaceId: string): Promise<DashboardSnapshot | null>;
   listMediaAssets(workspaceId: string): Promise<MediaAsset[]>;
   createMediaAsset(input: CreateMediaAssetInput): Promise<MediaAsset>;
   createContentItem(
     input: CreateContentItemInput,
-  ): Promise<import("@ritmio/contracts").ContentItem>;
+  ): Promise<import("@brilhio/contracts").ContentItem>;
   createApprovalTask(input: CreateApprovalTaskInput): Promise<ApprovalTask>;
   updateApprovalTaskStatus(
     workspaceId: string,
@@ -93,7 +97,7 @@ export interface Repository {
   createAiSuggestion(input: CreateAiSuggestionParams): Promise<void>;
   getContentItem(
     contentItemId: string,
-  ): Promise<import("@ritmio/contracts").ContentItem | null>;
+  ): Promise<import("@brilhio/contracts").ContentItem | null>;
   getScheduledPost(scheduledPostId: string): Promise<ScheduledPost | null>;
   getSocialAccount(
     workspaceId: string,

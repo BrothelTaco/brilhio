@@ -10,10 +10,10 @@ import {
 export default function OnboardingPage() {
   return (
     <main className="workspace-page">
-      <div className="ritmio-shell onboarding-page">
+      <div className="brilhio-shell onboarding-page">
         <header className="onboarding-header">
           <div>
-            <p className="ritmio-eyebrow">First-time login</p>
+            <p className="brilhio-eyebrow">First-time login</p>
             <h1>Set the strategy before the calendar fills up.</h1>
             <p>
               This onboarding flow should establish identity, goals, platform
@@ -22,20 +22,20 @@ export default function OnboardingPage() {
             </p>
           </div>
           <div className="page-actions">
-            <Link href="/account" className="ritmio-button ritmio-button-secondary">
+            <Link href="/account" className="brilhio-button brilhio-button-secondary">
               Skip to account profile
             </Link>
-            <Link href="/dashboard" className="ritmio-button ritmio-button-primary">
+            <Link href="/dashboard" className="brilhio-button brilhio-button-primary">
               Preview dashboard
             </Link>
           </div>
         </header>
 
         <div className="onboarding-layout">
-          <section className="ritmio-card surface-card onboarding-steps">
+          <section className="brilhio-card surface-card onboarding-steps">
             <div className="surface-head">
               <div>
-                <p className="ritmio-eyebrow">Flow outline</p>
+                <p className="brilhio-eyebrow">Flow outline</p>
                 <h2>What first-time setup should cover</h2>
               </div>
             </div>
@@ -54,10 +54,10 @@ export default function OnboardingPage() {
           </section>
 
           <div className="rail-layout">
-            <section className="ritmio-card surface-card">
+            <section className="brilhio-card surface-card">
               <div className="surface-head compact-head">
                 <div>
-                  <p className="ritmio-eyebrow">Identity selection</p>
+                  <p className="brilhio-eyebrow">Identity selection</p>
                   <h2>Who are you?</h2>
                 </div>
               </div>
@@ -76,10 +76,10 @@ export default function OnboardingPage() {
               </div>
             </section>
 
-            <section className="ritmio-card surface-card">
+            <section className="brilhio-card surface-card">
               <div className="surface-head compact-head">
                 <div>
-                  <p className="ritmio-eyebrow">Goals</p>
+                  <p className="brilhio-eyebrow">Goals</p>
                   <h2>What is social for?</h2>
                 </div>
               </div>
@@ -100,11 +100,11 @@ export default function OnboardingPage() {
               </div>
             </section>
 
-            <section className="ritmio-card surface-card">
+            <section className="brilhio-card surface-card">
               <div className="surface-head compact-head">
                 <div>
-                  <p className="ritmio-eyebrow">Platform order</p>
-                  <h2>Where should Ritmio focus first?</h2>
+                  <p className="brilhio-eyebrow">Platform order</p>
+                  <h2>Where should Brilhio focus first?</h2>
                 </div>
               </div>
 
@@ -121,10 +121,10 @@ export default function OnboardingPage() {
               </div>
             </section>
 
-            <section className="ritmio-card surface-card">
+            <section className="brilhio-card surface-card">
               <div className="surface-head compact-head">
                 <div>
-                  <p className="ritmio-eyebrow">Starter recommendations</p>
+                  <p className="brilhio-eyebrow">Starter recommendations</p>
                   <h2>What onboarding should produce immediately</h2>
                 </div>
               </div>

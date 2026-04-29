@@ -29,13 +29,13 @@ importers:
       '@fastify/cors':
         specifier: ^10.0.1
         version: 10.1.0
-      '@ritmio/backend':
+      '@brilhio/backend':
         specifier: workspace:*
         version: link:../../packages/backend
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ritmio/utils':
+      '@brilhio/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@supabase/supabase-js':
@@ -54,7 +54,7 @@ importers:
 
   apps/marketing:
     dependencies:
-      '@ritmio/design-system':
+      '@brilhio/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
       next:
@@ -72,16 +72,16 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.79.7(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.5))
-      '@ritmio/api-client':
+      '@brilhio/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ritmio/design-system':
+      '@brilhio/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@ritmio/utils':
+      '@brilhio/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@supabase/supabase-js':
@@ -105,18 +105,21 @@ importers:
 
   apps/web:
     dependencies:
-      '@ritmio/api-client':
+      '@brilhio/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ritmio/design-system':
+      '@brilhio/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@ritmio/utils':
+      '@brilhio/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@supabase/ssr':
+        specifier: ^0.6.1
+        version: 0.6.1(@supabase/supabase-js@2.103.3)
       '@supabase/supabase-js':
         specifier: ^2.50.0
         version: 2.103.3
@@ -132,10 +135,10 @@ importers:
 
   apps/worker:
     dependencies:
-      '@ritmio/backend':
+      '@brilhio/backend':
         specifier: workspace:*
         version: link:../../packages/backend
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       bullmq:
@@ -151,16 +154,16 @@ importers:
 
   packages/api-client:
     dependencies:
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../contracts
 
   packages/backend:
     dependencies:
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ritmio/utils':
+      '@brilhio/utils':
         specifier: workspace:*
         version: link:../utils
       '@supabase/supabase-js':
@@ -187,7 +190,7 @@ importers:
 
   packages/utils:
     dependencies:
-      '@ritmio/contracts':
+      '@brilhio/contracts':
         specifier: workspace:*
         version: link:../contracts
 
@@ -1369,6 +1372,11 @@ packages:
   '@supabase/realtime-js@2.103.3':
     resolution: {integrity: sha512-fUvKtSXMUk1BkApVwAurWtHF4Vzbb0UB9aC/fQXrRBek7Ta3Kaora+wHf/fGwFNQs7uRz+mvjIVpzLfpR32VXA==}
     engines: {node: '>=20.0.0'}
+
+  '@supabase/ssr@0.6.1':
+    resolution: {integrity: sha512-QtQgEMvaDzr77Mk3vZ3jWg2/y+D8tExYF7vcJT+wQ8ysuvOeGGjYbZlvj5bHYsj/SpC0bihcisnwPrM4Gp5G4g==}
+    peerDependencies:
+      '@supabase/supabase-js': ^2.43.4
 
   '@supabase/storage-js@2.103.3':
     resolution: {integrity: sha512-5bAIEubrw5keHcdKR2RTois0O1M2Ilx4UYuzOzc07G6mLGCPS/8t1nbC6Vq451pnxR3sK+rmtFHWb9CY/OPjAw==}
@@ -4849,6 +4857,11 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@supabase/ssr@0.6.1(@supabase/supabase-js@2.103.3)':
+    dependencies:
+      '@supabase/supabase-js': 2.103.3
+      cookie: 1.1.1
 
   '@supabase/storage-js@2.103.3':
     dependencies:

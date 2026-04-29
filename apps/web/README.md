@@ -1,4 +1,4 @@
-# Ritmio Web
+# Brilhio Web
 
 Authenticated browser experience for:
 
@@ -11,6 +11,6 @@ Authenticated browser experience for:
 ## Run
 
 ```bash
-pnpm --filter @ritmio/web dev
+pnpm --filter @brilhio/web dev
 ```
 

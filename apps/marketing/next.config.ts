@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@ritmio/design-system"],
+  transpilePackages: ["@brilhio/design-system"],
 };
 
 export default nextConfig;

@@ -1,10 +1,10 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { AuthSession, AuthenticatedUser } from "@ritmio/contracts";
+import type { AuthSession, AuthenticatedUser } from "@brilhio/contracts";
 import type { AppContext } from "./context";
 
 declare module "fastify" {
   interface FastifyInstance {
-    ritmio: AppContext;
+    brilhio: AppContext;
     requireAuth: (
       request: FastifyRequest,
       reply: FastifyReply,
@@ -12,7 +12,7 @@ declare module "fastify" {
   }
 
   interface FastifyRequest {
-    ritmioAuth: {
+    brilhioAuth: {
       user: AuthenticatedUser;
       session: AuthSession;
     } | null;

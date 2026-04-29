@@ -1,18 +1,18 @@
 {
-  "name": "@ritmio/api",
+  "name": "@brilhio/api",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "pnpm typecheck",
+    "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
-    "@ritmio/backend": "workspace:*",
-    "@ritmio/contracts": "workspace:*",
-    "@ritmio/utils": "workspace:*",
+    "@brilhio/backend": "workspace:*",
+    "@brilhio/contracts": "workspace:*",
+    "@brilhio/utils": "workspace:*",
     "@supabase/supabase-js": "^2.50.0",
     "fastify": "^5.2.1"
   },

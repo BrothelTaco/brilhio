@@ -15,8 +15,8 @@ export function createServer() {
     logger: true,
   });
 
-  app.decorate("ritmio", context);
-  app.decorateRequest("ritmioAuth", null);
+  app.decorate("brilhio", context);
+  app.decorateRequest("brilhioAuth", null);
   app.decorate("requireAuth", async function requireAuth(request, reply) {
     const resolved = await resolveRequestAuth(context, request);
 
@@ -25,7 +25,7 @@ export function createServer() {
       throw new Error("Authentication required.");
     }
 
-    request.ritmioAuth = resolved;
+    request.brilhioAuth = resolved;
   });
 
   void app.register(cors, {

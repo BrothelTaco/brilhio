@@ -1,4 +1,4 @@
-# Ritmio Mobile
+# Brilhio Mobile
 
 Expo React Native app for:
 
@@ -9,6 +9,6 @@ Expo React Native app for:
 ## Run
 
 ```bash
-pnpm --filter @ritmio/mobile dev
+pnpm --filter @brilhio/mobile dev
 ```
 

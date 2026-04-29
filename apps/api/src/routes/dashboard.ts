@@ -8,7 +8,7 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       preHandler: app.requireAuth,
     },
     async (request) => ({
-      data: request.ritmioAuth!.session.workspaces,
+      data: request.brilhioAuth!.session.workspaces,
     }),
   );
 
@@ -19,8 +19,8 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     },
     async (request, reply) => {
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         request.params.workspaceId,
       );
 
@@ -31,7 +31,7 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
         };
       }
 
-      const snapshot = await app.ritmio.repository.getDashboard(
+      const snapshot = await app.brilhio.repository.getDashboard(
         request.params.workspaceId,
       );
 
@@ -55,8 +55,8 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     },
     async (request, reply) => {
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         request.params.workspaceId,
       );
 
@@ -68,7 +68,7 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        data: await app.ritmio.repository.listMediaAssets(
+        data: await app.brilhio.repository.listMediaAssets(
           request.params.workspaceId,
         ),
       };

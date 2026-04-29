@@ -1,20 +1,40 @@
 export const appNavigation = [
   {
-    href: "/dashboard",
-    label: "Dashboard",
-    blurb: "Weekly planning and AI timing",
+    href: "/schedule",
+    label: "Schedule",
   },
   {
-    href: "/account",
-    label: "Account",
-    blurb: "Audience, goals, and voice",
+    href: "/content",
+    label: "Content",
+  },
+  {
+    href: "/strategy",
+    label: "Media Strategy",
   },
   {
     href: "/accounts",
-    label: "Account Linking",
-    blurb: "Provider health and permissions",
+    label: "Linked Platforms",
+  },
+  {
+    href: "/account",
+    label: "Profile",
   },
 ] as const;
+
+export const platforms = [
+  { id: "tiktok", label: "TikTok" },
+  { id: "instagram", label: "Instagram" },
+  { id: "x", label: "X" },
+  { id: "facebook", label: "Facebook" },
+  { id: "youtube", label: "YouTube" },
+] as const;
+
+export type PlatformId = (typeof platforms)[number]["id"];
+
+export const linkedAccounts: Array<{
+  platform: PlatformId;
+  handle: string;
+}> = [];
 
 export const workspaceSignals = [
   {
@@ -67,88 +87,87 @@ export const scheduleDays = [
   "Sun",
 ] as const;
 
-export const scheduleTimes = [
-  "08:00",
-  "10:00",
-  "12:00",
-  "14:00",
-  "16:00",
-  "18:00",
-] as const;
-
 export const scheduledPosts = [
   {
     day: "Mon",
-    time: "10:00",
-    platform: "Instagram",
-    title: "Founder workflow reel",
-    caption: "Show the before and after of the weekly planner.",
-    toneClass: "status-ok",
+    time: "10:23 AM",
+    platform: "instagram" as const,
+    type: "media+caption" as const,
+    mediaColor: "#1a2a1a",
+    caption: "Show the before and after of the weekly planner. This reel walks through the full setup in under 30 seconds.",
+  },
+  {
+    day: "Mon",
+    time: "10:45 AM",
+    platform: "tiktok" as const,
+    type: "media-only" as const,
+    mediaColor: "#1a1a2a",
+    caption: null,
   },
   {
     day: "Tue",
-    time: "12:00",
-    platform: "Facebook",
-    title: "Community launch post",
-    caption: "Drive comments with a clear audience hook.",
-    toneClass: "status-info",
+    time: "12:05 PM",
+    platform: "facebook" as const,
+    type: "text-only" as const,
+    mediaColor: null,
+    caption: "We just crossed 500 members in the community group. Every one of you found us through word of mouth. That means everything. Drop a comment and tell us how you heard about Brilhio.",
   },
   {
     day: "Wed",
-    time: "08:00",
-    platform: "X",
-    title: "Hook + thread opener",
-    caption: "Lead with the outcome, then unpack the workflow.",
-    toneClass: "status-warn",
+    time: "8:00 AM",
+    platform: "x" as const,
+    type: "text-only" as const,
+    mediaColor: null,
+    caption: "Most creators schedule content. The best ones schedule context. Here is how we think about the difference.",
   },
   {
     day: "Thu",
-    time: "14:00",
-    platform: "TikTok",
-    title: "Quick scheduling walkthrough",
-    caption: "Clip the product demo into a faster cadence.",
-    toneClass: "status-ok",
+    time: "2:45 PM",
+    platform: "tiktok" as const,
+    type: "media-only" as const,
+    mediaColor: "#1a1a2a",
+    caption: null,
   },
   {
     day: "Fri",
-    time: "16:00",
-    platform: "Instagram",
-    title: "Analytics proof carousel",
-    caption: "End the week with performance receipts.",
-    toneClass: "status-info",
+    time: "4:30 PM",
+    platform: "instagram" as const,
+    type: "media+caption" as const,
+    mediaColor: "#2a1a1a",
+    caption: "End of week numbers are in. Reach up 34% from last Friday. Here is what changed.",
   },
   {
     day: "Sun",
-    time: "12:00",
-    platform: "Facebook",
-    title: "Next week preview",
-    caption: "Seed the upcoming campaign before Monday.",
-    toneClass: "status-muted",
+    time: "11:15 AM",
+    platform: "facebook" as const,
+    type: "media+caption" as const,
+    mediaColor: "#1a2028",
+    caption: "Next week is going to be a big one. New drop, new content lane, and a behind-the-scenes series starting Monday.",
   },
 ] as const;
 
 export const connectedPlatforms = [
   {
     name: "Instagram",
-    handle: "@ritmiohq",
+    handle: "@brilhiohq",
     health: "Creative assets healthy",
     toneClass: "status-ok",
   },
   {
     name: "TikTok",
-    handle: "@ritmiotips",
+    handle: "@brilhiotips",
     health: "Needs fresh vertical cuts",
     toneClass: "status-warn",
   },
   {
     name: "Facebook",
-    handle: "Ritmio Studio",
+    handle: "Brilhio Studio",
     health: "Community cadence balanced",
     toneClass: "status-info",
   },
   {
     name: "X",
-    handle: "@ritmioapp",
+    handle: "@brilhioapp",
     health: "Hooks outperforming replies",
     toneClass: "status-ok",
   },
@@ -200,7 +219,7 @@ export const authHighlights = [
 export const onboardingSteps = [
   {
     step: "Step 1",
-    title: "Tell Ritmio who you are",
+    title: "Tell Brilhio who you are",
     body: "Band, solo artist, influencer, chef, venue, or another creator-led brand. This becomes the base layer for voice and timing.",
   },
   {

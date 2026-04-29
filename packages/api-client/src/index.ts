@@ -15,7 +15,7 @@ import type {
   ScheduledPost,
   UpdateApprovalTaskStatusInput,
   UpdateCurrentWorkspaceInput,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
 
 type ApiClientConfig = {
   baseUrl: string;
@@ -41,7 +41,7 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-export class RitmioApiClient {
+export class BrilhioApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
 
@@ -63,9 +63,9 @@ export class RitmioApiClient {
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
     } else if (this.config.devUserId) {
-      headers.set("x-ritmio-dev-user-id", this.config.devUserId);
+      headers.set("x-brilhio-dev-user-id", this.config.devUserId);
       if (this.config.devUserEmail) {
-        headers.set("x-ritmio-dev-user-email", this.config.devUserEmail);
+        headers.set("x-brilhio-dev-user-email", this.config.devUserEmail);
       }
     }
 
@@ -131,14 +131,14 @@ export class RitmioApiClient {
   }
 
   createContentItem(input: CreateContentItemInput) {
-    return this.request<import("@ritmio/contracts").ContentItem>("/api/content-items", {
+    return this.request<import("@brilhio/contracts").ContentItem>("/api/content-items", {
       method: "POST",
       body: JSON.stringify(input),
     });
   }
 
   createApprovalTask(input: CreateApprovalTaskInput) {
-    return this.request<import("@ritmio/contracts").ApprovalTask>("/api/approval-tasks", {
+    return this.request<import("@brilhio/contracts").ApprovalTask>("/api/approval-tasks", {
       method: "POST",
       body: JSON.stringify(input),
     });
@@ -148,7 +148,7 @@ export class RitmioApiClient {
     approvalTaskId: string,
     input: UpdateApprovalTaskStatusInput,
   ) {
-    return this.request<import("@ritmio/contracts").ApprovalTask>(
+    return this.request<import("@brilhio/contracts").ApprovalTask>(
       `/api/approval-tasks/${approvalTaskId}/status`,
       {
         method: "PATCH",
@@ -157,7 +157,7 @@ export class RitmioApiClient {
     );
   }
 
-  createScheduledPost(input: import("@ritmio/contracts").SchedulePostInput) {
+  createScheduledPost(input: import("@brilhio/contracts").SchedulePostInput) {
     return this.request<ScheduledPostCreationResult>("/api/scheduled-posts", {
       method: "POST",
       body: JSON.stringify(input),
@@ -183,7 +183,7 @@ export class RitmioApiClient {
   ) {
     return this.request<{
       provider: Omit<ProviderCatalogItem, "account">;
-      account: import("@ritmio/contracts").SocialAccount;
+      account: import("@brilhio/contracts").SocialAccount;
     }>(
       `/api/providers/${encodeURIComponent(platform)}/connect`,
       {
@@ -194,6 +194,6 @@ export class RitmioApiClient {
   }
 }
 
-export function createRitmioApiClient(config: ApiClientConfig) {
-  return new RitmioApiClient(config);
+export function createBrilhioApiClient(config: ApiClientConfig) {
+  return new BrilhioApiClient(config);
 }

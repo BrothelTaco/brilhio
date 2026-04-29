@@ -1,5 +1,5 @@
 {
-  "name": "@ritmio/backend",
+  "name": "@brilhio/backend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,12 +9,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "pnpm typecheck",
+    "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ritmio/contracts": "workspace:*",
-    "@ritmio/utils": "workspace:*",
+    "@brilhio/contracts": "workspace:*",
+    "@brilhio/utils": "workspace:*",
     "@supabase/supabase-js": "^2.50.0",
     "bullmq": "^5.58.0",
     "ioredis": "^5.5.0"

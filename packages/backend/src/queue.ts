@@ -1,8 +1,8 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
-import type { JobPayload } from "@ritmio/contracts";
+import type { JobPayload } from "@brilhio/contracts";
 
-export const RITMIO_QUEUE_NAME = "ritmio-jobs";
+export const BRILHIO_QUEUE_NAME = "brilhio-jobs";
 
 export function isQueueConfigured(redisUrl?: string | null) {
   return Boolean(redisUrl);
@@ -15,8 +15,8 @@ export function createRedisConnection(redisUrl: string) {
   });
 }
 
-export function createRitmioQueue(redisUrl: string) {
-  return new Queue<JobPayload>(RITMIO_QUEUE_NAME, {
+export function createBrilhioQueue(redisUrl: string) {
+  return new Queue<JobPayload>(BRILHIO_QUEUE_NAME, {
     connection: createRedisConnection(redisUrl),
     defaultJobOptions: {
       removeOnComplete: 100,

@@ -1,4 +1,4 @@
-# Ritmio API
+# Brilhio API
 
 Fastify API scaffold for:
 
@@ -16,7 +16,7 @@ Fastify API scaffold for:
 ## Run
 
 ```bash
-pnpm --filter @ritmio/api dev
+pnpm --filter @brilhio/api dev
 ```
 
 ## Current endpoints
@@ -41,5 +41,5 @@ pnpm --filter @ritmio/api dev
 
 - Supabase bearer token when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured
 - development identity headers when `ALLOW_DEV_AUTH=true`
-  - `x-ritmio-dev-user-id`
-  - `x-ritmio-dev-user-email`
+  - `x-brilhio-dev-user-id`
+  - `x-brilhio-dev-user-email`

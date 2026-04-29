@@ -1,5 +1,5 @@
 {
-  "name": "@ritmio/marketing",
+  "name": "@brilhio/marketing",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ritmio/design-system": "workspace:*",
+    "@brilhio/design-system": "workspace:*",
     "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

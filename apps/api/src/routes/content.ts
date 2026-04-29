@@ -6,9 +6,10 @@ import {
   createMediaAssetInputSchema,
   createMediaUploadSessionInputSchema,
   queueJobInputSchema,
-  schedulePostInputSchema,
+  schedulePostRequestInputSchema,
   updateApprovalTaskStatusInputSchema,
-} from "@ritmio/contracts";
+} from "@brilhio/contracts";
+import { localToUtc } from "@brilhio/backend";
 import { ensureWorkspaceAccess } from "../auth";
 import { persistAndEnqueueJob } from "../context";
 
@@ -36,8 +37,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -57,10 +58,10 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         `${randomUUID()}-${sanitizeFileSegment(parsed.data.title)}${extension}`,
       ].join("/");
 
-      if (!app.ritmio.supabaseAdmin) {
+      if (!app.brilhio.supabaseAdmin) {
         return {
           data: {
-            bucket: app.ritmio.config.storageBucket,
+            bucket: app.brilhio.config.storageBucket,
             storagePath: path,
             uploadPath: path,
             uploadToken: `memory-upload-${randomUUID()}`,
@@ -72,8 +73,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         };
       }
 
-      const { data, error } = await app.ritmio.supabaseAdmin.storage
-        .from(app.ritmio.config.storageBucket)
+      const { data, error } = await app.brilhio.supabaseAdmin.storage
+        .from(app.brilhio.config.storageBucket)
         .createSignedUploadUrl(path, {
           upsert: false,
         });
@@ -87,7 +88,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
       return {
         data: {
-          bucket: app.ritmio.config.storageBucket,
+          bucket: app.brilhio.config.storageBucket,
           storagePath: path,
           uploadPath: path,
           uploadToken: data.token,
@@ -111,8 +112,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -122,7 +123,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        data: await app.ritmio.repository.createMediaAsset(parsed.data),
+        data: await app.brilhio.repository.createMediaAsset(parsed.data),
       };
     },
   );
@@ -141,8 +142,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -152,7 +153,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        data: await app.ritmio.repository.createContentItem(parsed.data),
+        data: await app.brilhio.repository.createContentItem(parsed.data),
       };
     },
   );
@@ -171,8 +172,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -182,7 +183,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        data: await app.ritmio.repository.createApprovalTask(parsed.data),
+        data: await app.brilhio.repository.createApprovalTask(parsed.data),
       };
     },
   );
@@ -201,8 +202,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -211,7 +212,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         return { error: "Workspace access denied." };
       }
 
-      const updated = await app.ritmio.repository.updateApprovalTaskStatus(
+      const updated = await app.brilhio.repository.updateApprovalTaskStatus(
         parsed.data.workspaceId,
         request.params.approvalTaskId,
         parsed.data.status,
@@ -234,7 +235,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       preHandler: app.requireAuth,
     },
     async (request, reply) => {
-      const parsed = schedulePostInputSchema.safeParse(request.body);
+      const parsed = schedulePostRequestInputSchema.safeParse(request.body);
 
       if (!parsed.success) {
         reply.code(400);
@@ -242,8 +243,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -252,16 +253,29 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         return { error: "Workspace access denied." };
       }
 
-      const scheduledPost = await app.ritmio.repository.createScheduledPost(
-        parsed.data,
-      );
+      const workspace = await app.brilhio.repository.getWorkspace(parsed.data.workspaceId);
+      if (!workspace) {
+        reply.code(404);
+        return { error: "Workspace not found." };
+      }
 
-      const queueResult = await persistAndEnqueueJob(app.ritmio, {
+      const scheduledForUtc = localToUtc(parsed.data.localScheduledFor, workspace.timezone);
+
+      const scheduledPost = await app.brilhio.repository.createScheduledPost({
+        workspaceId: parsed.data.workspaceId,
+        contentItemId: parsed.data.contentItemId,
+        platform: parsed.data.platform,
+        scheduledFor: scheduledForUtc,
+        platformCaption: parsed.data.platformCaption,
+        publishWindowLabel: parsed.data.publishWindowLabel,
+      });
+
+      const queueResult = await persistAndEnqueueJob(app.brilhio, {
         workspaceId: parsed.data.workspaceId,
         type: "publish-scheduled-post",
         targetTable: "scheduled_posts",
         targetId: scheduledPost.id,
-        scheduledFor: parsed.data.scheduledFor,
+        scheduledFor: scheduledForUtc,
         payload: {
           type: "publish-scheduled-post",
           workspaceId: parsed.data.workspaceId,
@@ -293,8 +307,8 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const hasAccess = await ensureWorkspaceAccess(
-        app.ritmio,
-        request.ritmioAuth!.user.id,
+        app.brilhio,
+        request.brilhioAuth!.user.id,
         parsed.data.workspaceId,
       );
 
@@ -303,7 +317,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         return { error: "Workspace access denied." };
       }
 
-      const result = await persistAndEnqueueJob(app.ritmio, parsed.data);
+      const result = await persistAndEnqueueJob(app.brilhio, parsed.data);
 
       return {
         data: result.jobRecord,

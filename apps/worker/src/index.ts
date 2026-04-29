@@ -1,6 +1,6 @@
-import { Worker } from "bullmq";
-import { createRedisConnection, RITMIO_QUEUE_NAME } from "@ritmio/backend";
-import { jobPayloadSchema } from "@ritmio/contracts";
+import { Worker, Queue } from "bullmq";
+import { createRedisConnection, createBrilhioQueue, getQueueDelay, BRILHIO_QUEUE_NAME } from "@brilhio/backend";
+import { jobPayloadSchema } from "@brilhio/contracts";
 import { createWorkerRepository, processJob } from "./jobs";
 
 const redisUrl = process.env.REDIS_URL;
@@ -10,11 +10,11 @@ const repository = createWorkerRepository({
   encryptionSecret:
     process.env.APP_ENCRYPTION_KEY ??
     process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    "ritmio-local-secret",
+    "brilhio-local-secret",
 });
 
 async function boot() {
-  console.log("Ritmio worker online");
+  console.log("Brilhio worker online");
   console.log(`Repository mode: ${repository.mode}`);
 
   if (!redisUrl) {
@@ -25,9 +25,32 @@ async function boot() {
   }
 
   const connection = createRedisConnection(redisUrl);
+  const queue = createBrilhioQueue(redisUrl);
+
+  async function recoverOverdueJobs() {
+    try {
+      const overdue = await repository.listOverdueJobRecords();
+      for (const jobRecord of overdue) {
+        const payload = jobPayloadSchema.parse(jobRecord.payload);
+        const bullJob = await queue.add(
+          jobRecord.type,
+          payload,
+          { delay: getQueueDelay(jobRecord.scheduledFor) },
+        );
+        await repository.attachBullmqJobId(jobRecord.id, String(bullJob.id));
+        console.log(`[recovery] re-enqueued overdue job ${jobRecord.id} (${jobRecord.type})`);
+      }
+    } catch (error) {
+      console.error("[recovery] failed to scan overdue jobs", error);
+    }
+  }
+
+  const RECOVERY_INTERVAL_MS = 60_000;
+  const recoveryTimer = setInterval(recoverOverdueJobs, RECOVERY_INTERVAL_MS);
+  recoverOverdueJobs();
 
   const worker = new Worker(
-    RITMIO_QUEUE_NAME,
+    BRILHIO_QUEUE_NAME,
     async (job) => {
       const payload = jobPayloadSchema.parse(job.data);
 
@@ -81,13 +104,17 @@ async function boot() {
   });
 
   process.on("SIGINT", async () => {
+    clearInterval(recoveryTimer);
     await worker.close();
+    await queue.close();
     await connection.quit();
     process.exit(0);
   });
 
   process.on("SIGTERM", async () => {
+    clearInterval(recoveryTimer);
     await worker.close();
+    await queue.close();
     await connection.quit();
     process.exit(0);
   });

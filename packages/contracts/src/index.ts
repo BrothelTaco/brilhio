@@ -292,6 +292,22 @@ export const schedulePostInputSchema = z.object({
 });
 export type SchedulePostInput = z.infer<typeof schedulePostInputSchema>;
 
+// API-layer schema: client sends a naive local datetime (no offset), server converts to UTC.
+export const schedulePostRequestInputSchema = z.object({
+  workspaceId: entityIdSchema,
+  contentItemId: entityIdSchema,
+  platform: platformSchema,
+  localScheduledFor: z.string().min(1),
+  platformCaption: z.string().min(1),
+  publishWindowLabel: z.string().min(1),
+});
+export type SchedulePostRequestInput = z.infer<typeof schedulePostRequestInputSchema>;
+
+export const updateWorkspaceTimezoneInputSchema = z.object({
+  timezone: z.string().min(1),
+});
+export type UpdateWorkspaceTimezoneInput = z.infer<typeof updateWorkspaceTimezoneInputSchema>;
+
 export const queueJobInputSchema = z.object({
   workspaceId: entityIdSchema,
   type: jobTypeSchema,

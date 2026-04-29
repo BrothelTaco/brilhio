@@ -10,17 +10,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { createRitmioApiClient } from "@ritmio/api-client";
-import type { AuthSession, DashboardSnapshot } from "@ritmio/contracts";
-import { tokens } from "@ritmio/design-system";
-import { formatScheduleTime, groupScheduledPostsByDay } from "@ritmio/utils";
+import { createBrilhioApiClient } from "@brilhio/api-client";
+import type { AuthSession, DashboardSnapshot } from "@brilhio/contracts";
+import { tokens } from "@brilhio/design-system";
+import { formatScheduleTime, groupScheduledPostsByDay } from "@brilhio/utils";
 import { supabase } from "./lib/supabase";
 
 const mobileSupabase = supabase;
-const devUserId = process.env.EXPO_PUBLIC_RITMIO_DEV_USER_ID ?? null;
-const devUserEmail = process.env.EXPO_PUBLIC_RITMIO_DEV_USER_EMAIL ?? null;
+const devUserId = process.env.EXPO_PUBLIC_BRILHIO_DEV_USER_ID ?? null;
+const devUserEmail = process.env.EXPO_PUBLIC_BRILHIO_DEV_USER_EMAIL ?? null;
 
-const api = createRitmioApiClient({
+const api = createBrilhioApiClient({
   baseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:4000",
   getAccessToken: mobileSupabase
     ? async () =>
@@ -180,7 +180,7 @@ export default function App() {
       password,
       options: {
         data: {
-          display_name: email.split("@")[0] ?? "Ritmio operator",
+          display_name: email.split("@")[0] ?? "Brilhio operator",
         },
       },
     });
@@ -208,7 +208,7 @@ export default function App() {
       <View style={styles.loadingScreen}>
         <StatusBar style="dark" />
         <ActivityIndicator size="large" color={tokens.colors.primary} />
-        <Text style={styles.loadingText}>Loading Ritmio mobile...</Text>
+        <Text style={styles.loadingText}>Loading Brilhio mobile...</Text>
       </View>
     );
   }
@@ -220,7 +220,7 @@ export default function App() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.hero}>
             <Text style={styles.eyebrow}>Production auth enabled</Text>
-            <Text style={styles.title}>Sign in to Ritmio mobile</Text>
+            <Text style={styles.title}>Sign in to Brilhio mobile</Text>
             <Text style={styles.subtitle}>
               The mobile app now uses Supabase Auth and the same workspace-scoped
               API session model as the web app.
@@ -288,7 +288,7 @@ export default function App() {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar style="dark" />
-        <Text style={styles.errorTitle}>Could not load Ritmio mobile</Text>
+        <Text style={styles.errorTitle}>Could not load Brilhio mobile</Text>
         <Text style={styles.errorBody}>
           {error ?? "No workspace is available yet."}
         </Text>
@@ -304,7 +304,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>Native mobile v1</Text>
-          <Text style={styles.title}>Ritmio on the go</Text>
+          <Text style={styles.title}>Brilhio on the go</Text>
           <Text style={styles.subtitle}>
             Review approvals, monitor publish health, and keep the weekly plan
             moving even when you are away from the desktop workspace.
