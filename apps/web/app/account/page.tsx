@@ -14,7 +14,6 @@ import {
   voiceAttributes,
 } from "../ui/scaffold-data";
 
-const DEMO_WORKSPACE_ID = "demo-workspace";
 const DEMO_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 function getIanaTimezones(): string[] {
@@ -40,7 +39,7 @@ function getIanaTimezones(): string[] {
   }
 }
 
-function TimezoneSelector({ workspaceId }: { workspaceId: string }) {
+function TimezoneSelector() {
   const [timezone, setTimezone] = useState(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
@@ -51,14 +50,12 @@ function TimezoneSelector({ workspaceId }: { workspaceId: string }) {
     setTimezone(next);
     setStatus("saving");
     try {
-      const res = await fetch(
-        `${DEMO_API_BASE}/workspaces/${workspaceId}/timezone`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ timezone: next }),
-        },
-      );
+      const res = await fetch(`${DEMO_API_BASE}/api/me/timezone`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: next }),
+      });
       setStatus(res.ok ? "saved" : "error");
     } catch {
       setStatus("error");
@@ -81,7 +78,7 @@ function TimezoneSelector({ workspaceId }: { workspaceId: string }) {
         All scheduled posts use this timezone. Posts you schedule at "3 PM" will publish at 3 PM in this zone.
       </p>
       <label className="field-stack">
-        <span>Workspace timezone</span>
+        <span>Timezone</span>
         <select
           value={timezone}
           onChange={(e) => handleChange(e.target.value)}
@@ -219,7 +216,7 @@ export default function AccountPage() {
             </div>
           </section>
 
-          <TimezoneSelector workspaceId={DEMO_WORKSPACE_ID} />
+          <TimezoneSelector />
 
           <section className="brilhio-card surface-card">
             <div className="surface-head compact-head">

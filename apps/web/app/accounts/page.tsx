@@ -33,7 +33,6 @@ type ConnectState =
   | { phase: "success"; platform: Platform }
   | { phase: "error"; platform: Platform; message: string };
 
-const DEMO_WORKSPACE_ID = "demo-workspace";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 const FALLBACK_PROVIDERS: ProviderItem[] = [
@@ -95,10 +94,7 @@ export default function AccountsPage() {
 
   const fetchProviders = useCallback(async () => {
     try {
-      const res = await fetch(
-        `${API_BASE}/api/providers?workspaceId=${DEMO_WORKSPACE_ID}`,
-        { credentials: "include" },
-      );
+      const res = await fetch(`${API_BASE}/api/providers`, { credentials: "include" });
       if (res.ok) {
         const json = await res.json();
         setProviders(json.data);
@@ -132,7 +128,6 @@ export default function AccountsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           platform,
-          workspaceId: DEMO_WORKSPACE_ID,
           handle: handle.trim(),
           audienceLabel: audienceLabel.trim() || "General audience",
         }),
@@ -150,11 +145,7 @@ export default function AccountsPage() {
         });
       }
     } catch {
-      setConnectState({
-        phase: "error",
-        platform,
-        message: "Could not reach the server.",
-      });
+      setConnectState({ phase: "error", platform, message: "Could not reach the server." });
     }
   }
 
@@ -163,7 +154,7 @@ export default function AccountsPage() {
       <div className="linked-platforms-page">
         <div className="page-header">
           <div>
-            <p className="brilhio-eyebrow">Workspace</p>
+            <p className="brilhio-eyebrow">Accounts</p>
             <h1>Linked Platforms</h1>
             <p>
               Connect your social accounts to enable scheduling and automated
@@ -176,17 +167,13 @@ export default function AccountsPage() {
           <div className="provider-grid">
             {providers.map((provider) => {
               const isOpen =
-                connectState.phase !== "idle" &&
-                connectState.platform === provider.platform;
+                connectState.phase !== "idle" && connectState.platform === provider.platform;
               const isLoading =
-                connectState.phase === "loading" &&
-                connectState.platform === provider.platform;
+                connectState.phase === "loading" && connectState.platform === provider.platform;
               const isSuccess =
-                connectState.phase === "success" &&
-                connectState.platform === provider.platform;
+                connectState.phase === "success" && connectState.platform === provider.platform;
               const isError =
-                connectState.phase === "error" &&
-                connectState.platform === provider.platform;
+                connectState.phase === "error" && connectState.platform === provider.platform;
               const account = provider.account;
 
               return (
@@ -232,14 +219,9 @@ export default function AccountsPage() {
                         <PlatformIcon platform={provider.platform} size={14} />
                         <span className="lp-connected-handle">{account.handle}</span>
                         <span className="lp-connected-sep">·</span>
-                        <span className="lp-connected-audience">
-                          {account.audienceLabel}
-                        </span>
+                        <span className="lp-connected-audience">{account.audienceLabel}</span>
                       </div>
-                      <button
-                        className="lp-secondary-btn"
-                        onClick={() => openConnect(provider.platform)}
-                      >
+                      <button className="lp-secondary-btn" onClick={() => openConnect(provider.platform)}>
                         Reconnect
                       </button>
                     </div>
@@ -283,9 +265,7 @@ export default function AccountsPage() {
                         </p>
                       )}
                       {isSuccess && (
-                        <p className="lp-form-status lp-form-success">
-                          Account connected.
-                        </p>
+                        <p className="lp-form-status lp-form-success">Account connected.</p>
                       )}
                       <div className="lp-form-actions">
                         <button

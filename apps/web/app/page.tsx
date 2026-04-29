@@ -11,65 +11,32 @@ export default function AuthEntryPage() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  const [signupName, setSignupName] = useState("");
-  const [signupTeam, setSignupTeam] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupError, setSignupError] = useState("");
-  const [signupLoading, setSignupLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const showAuthRequiredMessage = searchParams.get("reason") === "auth-required";
   const showSignedOutMessage = searchParams.get("signedOut") === "1";
 
-  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoginError("");
-    setLoginLoading(true);
+    setError("");
+    setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
     });
 
-    setLoginLoading(false);
+    setLoading(false);
 
-    if (error) {
-      setLoginError(error.message);
+    if (signInError) {
+      setError(signInError.message);
       return;
     }
 
     router.push("/schedule");
-    router.refresh();
-  }
-
-  async function handleSignupSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSignupError("");
-    setSignupLoading(true);
-
-    const displayName = signupName.trim() || signupTeam.trim() || signupEmail.trim().split("@")[0];
-
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail.trim(),
-      password: signupPassword,
-      options: {
-        data: { display_name: displayName, team: signupTeam.trim() },
-      },
-    });
-
-    setSignupLoading(false);
-
-    if (error) {
-      setSignupError(error.message);
-      return;
-    }
-
-    router.push("/onboarding");
     router.refresh();
   }
 
@@ -114,12 +81,12 @@ export default function AuthEntryPage() {
           <section className="brilhio-card auth-form-card">
             <div className="form-head">
               <p className="brilhio-eyebrow">Sign in</p>
-              <h2>Return to the workspace</h2>
+              <h2>Welcome back</h2>
             </div>
 
             {showAuthRequiredMessage ? (
               <p className="demo-status demo-status-warn">
-                Sign in to continue to dashboard pages.
+                Sign in to continue.
               </p>
             ) : null}
 
@@ -129,15 +96,16 @@ export default function AuthEntryPage() {
               </p>
             ) : null}
 
-            <form onSubmit={handleLoginSubmit}>
+            <form onSubmit={handleSubmit}>
               <label className="field-stack">
                 <span>Email</span>
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  value={loginEmail}
-                  onChange={(event) => setLoginEmail(event.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoFocus
                 />
               </label>
 
@@ -146,105 +114,24 @@ export default function AuthEntryPage() {
                 <input
                   type="password"
                   placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(event) => setLoginPassword(event.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </label>
 
-              {loginError ? <p className="demo-status demo-status-warn">{loginError}</p> : null}
+              {error ? <p className="demo-status demo-status-warn">{error}</p> : null}
 
               <div className="inline-actions">
                 <button
                   type="submit"
                   className="brilhio-button brilhio-button-primary"
-                  disabled={loginLoading}
+                  disabled={loading}
                 >
-                  {loginLoading ? "Signing in…" : "Enter workspace"}
+                  {loading ? "Signing in…" : "Sign in"}
                 </button>
-                <a href="#create-account" className="brilhio-button brilhio-button-secondary">
-                  Need an account?
-                </a>
-              </div>
-            </form>
-          </section>
-
-          <section id="create-account" className="brilhio-card auth-form-card auth-form-muted">
-            <div className="form-head">
-              <p className="brilhio-eyebrow">Create account</p>
-              <h2>Start a new workspace</h2>
-              <p>
-                Set up the desktop planning environment first, then layer in
-                automation and native mobile later.
-              </p>
-            </div>
-
-            <form onSubmit={handleSignupSubmit}>
-              <div className="split-fields">
-                <label className="field-stack">
-                  <span>Name</span>
-                  <input
-                    type="text"
-                    placeholder="Josh Kinsley"
-                    value={signupName}
-                    onChange={(event) => setSignupName(event.target.value)}
-                  />
-                </label>
-                <label className="field-stack">
-                  <span>Team</span>
-                  <input
-                    type="text"
-                    placeholder="Brilhio Studio"
-                    value={signupTeam}
-                    onChange={(event) => setSignupTeam(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              <label className="field-stack">
-                <span>Email</span>
-                <input
-                  type="email"
-                  placeholder="founder@company.com"
-                  value={signupEmail}
-                  onChange={(event) => setSignupEmail(event.target.value)}
-                  required
-                />
-              </label>
-
-              <label className="field-stack">
-                <span>Password</span>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={signupPassword}
-                  onChange={(event) => setSignupPassword(event.target.value)}
-                  required
-                  minLength={6}
-                />
-              </label>
-
-              <label className="field-stack">
-                <span>What do you want first?</span>
-                <select defaultValue="calendar">
-                  <option value="calendar">Weekly calendar planning</option>
-                  <option value="accounts">Account linking</option>
-                  <option value="media">Media intake and AI guidance</option>
-                </select>
-              </label>
-
-              {signupError ? <p className="demo-status demo-status-warn">{signupError}</p> : null}
-
-              <div className="inline-actions">
-                <button
-                  type="submit"
-                  className="brilhio-button brilhio-button-primary"
-                  disabled={signupLoading}
-                >
-                  {signupLoading ? "Creating account…" : "Continue to onboarding"}
-                </button>
-                <Link href="/account" className="brilhio-button brilhio-button-secondary">
-                  Preview account profile
+                <Link href="/join" className="brilhio-button brilhio-button-secondary">
+                  Create an account
                 </Link>
               </div>
             </form>

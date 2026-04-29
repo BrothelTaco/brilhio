@@ -1,52 +1,16 @@
 import type { FastifyPluginAsync } from "fastify";
-import {
-  getProviderDefinition,
-  providerCatalog,
-} from "@brilhio/backend";
-import {
-  createProviderConnectionInputSchema,
-  platformSchema,
-} from "@brilhio/contracts";
-import { ensureWorkspaceAccess } from "../auth";
+import { getProviderDefinition, providerCatalog } from "@brilhio/backend";
+import { createProviderConnectionInputSchema, platformSchema } from "@brilhio/contracts";
 
 export const providerRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/providers",
-    {
-      preHandler: app.requireAuth,
-    },
-    async (request, reply) => {
-      const workspaceId =
-        typeof request.query === "object" &&
-        request.query !== null &&
-        "workspaceId" in request.query &&
-        typeof request.query.workspaceId === "string"
-          ? request.query.workspaceId
-          : null;
-
-      if (!workspaceId) {
-        reply.code(400);
-        return {
-          error: "workspaceId query parameter is required.",
-        };
-      }
-
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return {
-          error: "Workspace access denied.",
-        };
-      }
-
+    { preHandler: app.requireAuth },
+    async (request) => {
+      const userId = request.brilhioAuth!.user.id;
       const accounts = await Promise.all(
         providerCatalog.map((provider) =>
-          app.brilhio.repository.getSocialAccount(workspaceId, provider.platform),
+          app.brilhio.repository.getSocialAccount(userId, provider.platform),
         ),
       );
 
@@ -61,16 +25,12 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
 
   app.post<{ Params: { platform: string } }>(
     "/providers/:platform/connect",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsedPlatform = platformSchema.safeParse(request.params.platform);
       if (!parsedPlatform.success) {
         reply.code(404);
-        return {
-          error: "Provider is not supported.",
-        };
+        return { error: "Provider is not supported." };
       }
 
       const parsed = createProviderConnectionInputSchema.safeParse(request.body);
@@ -81,35 +41,19 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
 
       if (parsed.data.platform !== parsedPlatform.data) {
         reply.code(400);
-        return {
-          error: "Body platform must match the provider route parameter.",
-        };
-      }
-
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
+        return { error: "Body platform must match the provider route parameter." };
       }
 
       const provider = getProviderDefinition(parsedPlatform.data);
       if (!provider) {
         reply.code(404);
-        return {
-          error: "Provider is not supported.",
-        };
+        return { error: "Provider is not supported." };
       }
 
       const account = await app.brilhio.repository.upsertSocialAccountConnection({
         ...parsed.data,
-        accessToken:
-          parsed.data.accessToken ??
-          `sandbox-${parsedPlatform.data}-access-token`,
+        userId: request.brilhioAuth!.user.id,
+        accessToken: parsed.data.accessToken ?? `sandbox-${parsedPlatform.data}-access-token`,
         providerMetadata: {
           connectionMode: provider.connectionMode,
           publishMode: provider.publishMode,
@@ -117,12 +61,7 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      return {
-        data: {
-          provider,
-          account,
-        },
-      };
+      return { data: { provider, account } };
     },
   );
 };

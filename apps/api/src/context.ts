@@ -7,11 +7,7 @@ import {
   SupabaseRepository,
   type Repository,
 } from "@brilhio/backend";
-import type {
-  JobPayload,
-  JobRecord,
-  QueueJobInput,
-} from "@brilhio/contracts";
+import type { JobPayload, JobRecord, QueueJobInput } from "@brilhio/contracts";
 
 export type AppConfig = {
   port: number;
@@ -54,9 +50,7 @@ export function readAppConfig(env = process.env): AppConfig {
 }
 
 export function createAppContext(config = readAppConfig()): AppContext {
-  const hasSupabase = Boolean(
-    config.supabaseUrl && config.supabaseServiceRoleKey,
-  );
+  const hasSupabase = Boolean(config.supabaseUrl && config.supabaseServiceRoleKey);
 
   const repository = hasSupabase
     ? SupabaseRepository.create({
@@ -68,10 +62,7 @@ export function createAppContext(config = readAppConfig()): AppContext {
 
   const supabaseAdmin = hasSupabase
     ? createClient(config.supabaseUrl!, config.supabaseServiceRoleKey!, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+        auth: { autoRefreshToken: false, persistSession: false },
       })
     : null;
 
@@ -79,60 +70,23 @@ export function createAppContext(config = readAppConfig()): AppContext {
     ? createBrilhioQueue(config.redisUrl!)
     : null;
 
-  return {
-    config,
-    repository,
-    supabaseAdmin,
-    queue,
-  };
+  return { config, repository, supabaseAdmin, queue };
 }
 
-export function buildRuntimeJobPayload(
-  record: JobRecord,
-  input: QueueJobInput,
-): JobPayload {
+export function buildRuntimeJobPayload(record: JobRecord, input: QueueJobInput): JobPayload {
   switch (input.type) {
     case "build-calendar":
-      return {
-        type: "build-calendar",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-      };
+      return { type: "build-calendar", jobRecordId: record.id, userId: input.userId };
     case "generate-caption":
-      return {
-        type: "generate-caption",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-        contentItemId: input.targetId,
-      };
+      return { type: "generate-caption", jobRecordId: record.id, userId: input.userId, contentItemId: input.targetId };
     case "generate-platform-variants":
-      return {
-        type: "generate-platform-variants",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-        contentItemId: input.targetId,
-      };
+      return { type: "generate-platform-variants", jobRecordId: record.id, userId: input.userId, contentItemId: input.targetId };
     case "publish-scheduled-post":
-      return {
-        type: "publish-scheduled-post",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-        scheduledPostId: input.targetId,
-      };
+      return { type: "publish-scheduled-post", jobRecordId: record.id, userId: input.userId, scheduledPostId: input.targetId };
     case "refresh-social-token":
-      return {
-        type: "refresh-social-token",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-        socialAccountId: input.targetId,
-      };
+      return { type: "refresh-social-token", jobRecordId: record.id, userId: input.userId, socialAccountId: input.targetId };
     case "ingest-provider-webhook":
-      return {
-        type: "ingest-provider-webhook",
-        jobRecordId: record.id,
-        workspaceId: input.workspaceId,
-        providerWebhookId: input.targetId,
-      };
+      return { type: "ingest-provider-webhook", jobRecordId: record.id, userId: input.userId, providerWebhookId: input.targetId };
     default: {
       const neverReached: never = input.type;
       return neverReached;
@@ -140,18 +94,12 @@ export function buildRuntimeJobPayload(
   }
 }
 
-export async function persistAndEnqueueJob(
-  context: AppContext,
-  input: QueueJobInput,
-) {
+export async function persistAndEnqueueJob(context: AppContext, input: QueueJobInput) {
   const jobRecord = await context.repository.createJobRecord(input);
   const payload = buildRuntimeJobPayload(jobRecord, input);
 
   if (!context.queue) {
-    return {
-      jobRecord,
-      enqueued: false,
-    };
+    return { jobRecord, enqueued: false };
   }
 
   const bullJob = await context.queue.add(payload.type, payload, {
@@ -159,13 +107,7 @@ export async function persistAndEnqueueJob(
   });
 
   const updatedRecord =
-    (await context.repository.attachBullmqJobId(
-      jobRecord.id,
-      String(bullJob.id),
-    )) ?? jobRecord;
+    (await context.repository.attachBullmqJobId(jobRecord.id, String(bullJob.id))) ?? jobRecord;
 
-  return {
-    jobRecord: updatedRecord,
-    enqueued: true,
-  };
+  return { jobRecord: updatedRecord, enqueued: true };
 }

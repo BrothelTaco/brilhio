@@ -10,7 +10,6 @@ import type {
   ScheduledPost,
   SocialAccount,
   UserProfile,
-  Workspace,
 } from "@brilhio/contracts";
 
 export const demoUser: AuthenticatedUser = {
@@ -19,26 +18,19 @@ export const demoUser: AuthenticatedUser = {
   authSource: "development",
 };
 
-export const demoWorkspace: Workspace = {
-  id: "workspace-brilhio",
-  name: "Brilhio Studio",
-  slug: "brilhio-studio",
+export const demoProfile: UserProfile = {
+  id: "1000001",
+  userId: demoUser.id,
+  email: demoUser.email ?? "demo@brilhio.local",
   timezone: "America/Denver",
-  ownerName: "Josh",
+  stripeCustomerId: null,
   createdAt: "2026-04-17T08:00:00.000Z",
-};
-
-export const demoUserProfile: UserProfile = {
-  id: demoUser.id,
-  displayName: "Demo Operator",
-  email: demoUser.email,
-  currentWorkspaceId: demoWorkspace.id,
 };
 
 export const demoSocialAccounts: SocialAccount[] = [
   {
     id: "account-instagram",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     platform: "instagram",
     handle: "@brilhiohq",
     status: "connected",
@@ -50,7 +42,7 @@ export const demoSocialAccounts: SocialAccount[] = [
   },
   {
     id: "account-facebook",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     platform: "facebook",
     handle: "Brilhio Studio",
     status: "connected",
@@ -62,7 +54,7 @@ export const demoSocialAccounts: SocialAccount[] = [
   },
   {
     id: "account-tiktok",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     platform: "tiktok",
     handle: "@brilhiotips",
     status: "attention_required",
@@ -74,7 +66,7 @@ export const demoSocialAccounts: SocialAccount[] = [
   },
   {
     id: "account-x",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     platform: "x",
     handle: "@brilhioapp",
     status: "connected",
@@ -89,7 +81,7 @@ export const demoSocialAccounts: SocialAccount[] = [
 export const demoMediaAssets: MediaAsset[] = [
   {
     id: "asset-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     kind: "video",
     title: "Batch creation walkthrough",
     storagePath: "media/batch-walkthrough.mp4",
@@ -99,7 +91,7 @@ export const demoMediaAssets: MediaAsset[] = [
   },
   {
     id: "asset-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     kind: "image",
     title: "Analytics snapshot",
     storagePath: "media/analytics-snapshot.png",
@@ -112,7 +104,7 @@ export const demoMediaAssets: MediaAsset[] = [
 export const demoContentItems: ContentItem[] = [
   {
     id: "content-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     title: "Launch teaser",
     brief: "Announce the product's weekly calendar autopilot.",
     campaign: "Spring launch",
@@ -123,7 +115,7 @@ export const demoContentItems: ContentItem[] = [
   },
   {
     id: "content-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     title: "Analytics proof point",
     brief: "Show why timing recommendations matter across platforms.",
     campaign: "Spring launch",
@@ -137,7 +129,7 @@ export const demoContentItems: ContentItem[] = [
 export const demoScheduledPosts: ScheduledPost[] = [
   {
     id: "post-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-1",
     platform: "instagram",
     scheduledFor: "2026-04-20T15:30:00.000Z",
@@ -149,7 +141,7 @@ export const demoScheduledPosts: ScheduledPost[] = [
   },
   {
     id: "post-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-1",
     platform: "facebook",
     scheduledFor: "2026-04-21T16:00:00.000Z",
@@ -161,7 +153,7 @@ export const demoScheduledPosts: ScheduledPost[] = [
   },
   {
     id: "post-3",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-2",
     platform: "x",
     scheduledFor: "2026-04-23T18:15:00.000Z",
@@ -173,7 +165,7 @@ export const demoScheduledPosts: ScheduledPost[] = [
   },
   {
     id: "post-4",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-2",
     platform: "tiktok",
     scheduledFor: "2026-04-24T21:00:00.000Z",
@@ -188,16 +180,16 @@ export const demoScheduledPosts: ScheduledPost[] = [
 export const demoAiSuggestions: AiSuggestion[] = [
   {
     id: "suggestion-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-1",
     type: "publish_window",
     title: "Push Facebook later in the morning",
-    body: "Community updates in your workspace perform best between 9:45 AM and 10:30 AM local time.",
+    body: "Community updates in your account perform best between 9:45 AM and 10:30 AM local time.",
     createdAt: "2026-04-17T08:30:00.000Z",
   },
   {
     id: "suggestion-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-2",
     type: "caption",
     title: "Swap a stronger opening hook",
@@ -209,7 +201,7 @@ export const demoAiSuggestions: AiSuggestion[] = [
 export const demoApprovalTasks: ApprovalTask[] = [
   {
     id: "approval-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-2",
     reviewerUserId: null,
     reviewerName: "Creative lead",
@@ -219,7 +211,7 @@ export const demoApprovalTasks: ApprovalTask[] = [
   },
   {
     id: "approval-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     contentItemId: "content-1",
     reviewerUserId: null,
     reviewerName: "Founder",
@@ -232,7 +224,7 @@ export const demoApprovalTasks: ApprovalTask[] = [
 export const demoJobs: JobRecord[] = [
   {
     id: "job-1",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     type: "generate-caption",
     status: "completed",
     targetTable: "content_items",
@@ -246,12 +238,12 @@ export const demoJobs: JobRecord[] = [
       type: "generate-caption",
       contentItemId: "content-2",
       jobRecordId: "job-1",
-      workspaceId: demoWorkspace.id,
+      userId: demoUser.id,
     },
   },
   {
     id: "job-2",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     type: "publish-scheduled-post",
     status: "queued",
     targetTable: "scheduled_posts",
@@ -265,12 +257,12 @@ export const demoJobs: JobRecord[] = [
       type: "publish-scheduled-post",
       scheduledPostId: "post-1",
       jobRecordId: "job-2",
-      workspaceId: demoWorkspace.id,
+      userId: demoUser.id,
     },
   },
   {
     id: "job-3",
-    workspaceId: demoWorkspace.id,
+    userId: demoUser.id,
     type: "refresh-social-token",
     status: "retrying",
     targetTable: "social_accounts",
@@ -284,20 +276,17 @@ export const demoJobs: JobRecord[] = [
       type: "refresh-social-token",
       socialAccountId: "account-tiktok",
       jobRecordId: "job-3",
-      workspaceId: demoWorkspace.id,
+      userId: demoUser.id,
     },
   },
 ];
 
 export const demoAuthSession: AuthSession = {
   user: demoUser,
-  profile: demoUserProfile,
-  workspaces: [demoWorkspace],
-  currentWorkspaceId: demoWorkspace.id,
+  profile: demoProfile,
 };
 
 export const demoDashboardSnapshot: DashboardSnapshot = {
-  workspace: demoWorkspace,
   socialAccounts: demoSocialAccounts,
   mediaAssets: demoMediaAssets,
   contentItems: demoContentItems,

@@ -35,7 +35,7 @@ async function buildCaptionSuggestion(
   }
 
   await repository.createAiSuggestion({
-    workspaceId: payload.workspaceId,
+    userId: payload.userId,
     contentItemId: payload.contentItemId,
     type: "caption",
     title: `AI caption direction for ${contentItem.title}`,
@@ -57,7 +57,7 @@ async function buildPlatformVariants(
   }
 
   await repository.createAiSuggestion({
-    workspaceId: payload.workspaceId,
+    userId: payload.userId,
     contentItemId: payload.contentItemId,
     type: "content_idea",
     title: `Platform variants ready for ${contentItem.title}`,
@@ -73,15 +73,15 @@ async function buildCalendarHint(
   repository: Repository,
   payload: Extract<JobPayload, { type: "build-calendar" }>,
 ) {
-  const dashboard = await repository.getDashboard(payload.workspaceId);
+  const dashboard = await repository.getDashboard(payload.userId);
   if (!dashboard) {
-    throw new Error("Workspace not found for calendar rebuild.");
+    throw new Error("User not found for calendar rebuild.");
   }
 
   const nextSuggestionTarget = dashboard.contentItems[0];
   if (nextSuggestionTarget) {
     await repository.createAiSuggestion({
-      workspaceId: payload.workspaceId,
+      userId: payload.userId,
       contentItemId: nextSuggestionTarget.id,
       type: "publish_window",
       title: "Weekly calendar refreshed",
@@ -91,7 +91,7 @@ async function buildCalendarHint(
     });
   }
 
-  return "Rebuilt calendar suggestions for the workspace.";
+  return "Rebuilt calendar suggestions for the user.";
 }
 
 async function publishScheduledPost(
@@ -110,7 +110,7 @@ async function publishScheduledPost(
   }
 
   const credentials = await repository.getSocialAccountCredentials(
-    scheduledPost.workspaceId,
+    scheduledPost.userId,
     scheduledPost.platform,
   );
   if (!credentials) {

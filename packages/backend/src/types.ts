@@ -17,9 +17,7 @@ import type {
   ScheduledPost,
   SchedulePostInput,
   SocialAccount,
-  Workspace,
 } from "@brilhio/contracts";
-
 
 export type RepositoryMode = "supabase" | "memory";
 
@@ -31,7 +29,7 @@ export type JobRecordUpdate = {
 };
 
 export type CreateAiSuggestionParams = {
-  workspaceId: string;
+  userId: string;
   contentItemId: string;
   type: "caption" | "hashtag_set" | "publish_window" | "content_idea";
   title: string;
@@ -41,6 +39,7 @@ export type CreateAiSuggestionParams = {
 };
 
 export type UpsertSocialAccountConnectionInput = CreateProviderConnectionInput & {
+  userId: string;
   providerMetadata?: Record<string, unknown>;
 };
 
@@ -55,70 +54,32 @@ export type AuthResolution = {
   session: AuthSession;
 };
 
-export type CurrentWorkspaceSelection = {
-  workspaceId: string;
-};
-
 export interface Repository {
   mode: RepositoryMode;
   getAuthSession(user: AuthenticatedUser): Promise<AuthSession>;
-  setCurrentWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<AuthSession>;
-  listWorkspacesForUser(userId: string): Promise<Workspace[]>;
-  userHasWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean>;
-  getWorkspace(workspaceId: string): Promise<Workspace | null>;
-  updateWorkspaceTimezone(workspaceId: string, timezone: string): Promise<Workspace | null>;
+  updateUserTimezone(userId: string, timezone: string): Promise<void>;
+  getUserTimezone(userId: string): Promise<string>;
   listOverdueJobRecords(): Promise<JobRecord[]>;
-  getDashboard(workspaceId: string): Promise<DashboardSnapshot | null>;
-  listMediaAssets(workspaceId: string): Promise<MediaAsset[]>;
+  getDashboard(userId: string): Promise<DashboardSnapshot>;
+  listMediaAssets(userId: string): Promise<MediaAsset[]>;
   createMediaAsset(input: CreateMediaAssetInput): Promise<MediaAsset>;
-  createContentItem(
-    input: CreateContentItemInput,
-  ): Promise<import("@brilhio/contracts").ContentItem>;
+  createContentItem(input: CreateContentItemInput): Promise<import("@brilhio/contracts").ContentItem>;
   createApprovalTask(input: CreateApprovalTaskInput): Promise<ApprovalTask>;
-  updateApprovalTaskStatus(
-    workspaceId: string,
-    approvalTaskId: string,
-    status: ApprovalStatus,
-  ): Promise<ApprovalTask | null>;
+  updateApprovalTaskStatus(userId: string, approvalTaskId: string, status: ApprovalStatus): Promise<ApprovalTask | null>;
   createScheduledPost(input: SchedulePostInput): Promise<ScheduledPost>;
   createJobRecord(input: QueueJobInput): Promise<JobRecord>;
-  attachBullmqJobId(
-    jobRecordId: string,
-    bullmqJobId: string,
-  ): Promise<JobRecord | null>;
+  attachBullmqJobId(jobRecordId: string, bullmqJobId: string): Promise<JobRecord | null>;
   getJobRecord(jobRecordId: string): Promise<JobRecord | null>;
-  updateJobRecord(
-    jobRecordId: string,
-    update: JobRecordUpdate,
-  ): Promise<JobRecord | null>;
+  updateJobRecord(jobRecordId: string, update: JobRecordUpdate): Promise<JobRecord | null>;
   createAiSuggestion(input: CreateAiSuggestionParams): Promise<void>;
-  getContentItem(
-    contentItemId: string,
-  ): Promise<import("@brilhio/contracts").ContentItem | null>;
+  getContentItem(contentItemId: string): Promise<import("@brilhio/contracts").ContentItem | null>;
   getScheduledPost(scheduledPostId: string): Promise<ScheduledPost | null>;
-  getSocialAccount(
-    workspaceId: string,
-    platform: Platform,
-  ): Promise<SocialAccount | null>;
+  getSocialAccount(userId: string, platform: Platform): Promise<SocialAccount | null>;
   getSocialAccountById(socialAccountId: string): Promise<SocialAccount | null>;
-  getSocialAccountCredentials(
-    workspaceId: string,
-    platform: Platform,
-  ): Promise<SocialAccountCredentials | null>;
-  upsertSocialAccountConnection(
-    input: UpsertSocialAccountConnectionInput,
-  ): Promise<SocialAccount>;
-  markScheduledPostPublished(
-    scheduledPostId: string,
-    providerPostId: string,
-  ): Promise<ScheduledPost | null>;
-  markScheduledPostFailed(
-    scheduledPostId: string,
-    errorMessage: string,
-  ): Promise<ScheduledPost | null>;
+  getSocialAccountCredentials(userId: string, platform: Platform): Promise<SocialAccountCredentials | null>;
+  upsertSocialAccountConnection(input: UpsertSocialAccountConnectionInput): Promise<SocialAccount>;
+  markScheduledPostPublished(scheduledPostId: string, providerPostId: string): Promise<ScheduledPost | null>;
+  markScheduledPostFailed(scheduledPostId: string, errorMessage: string): Promise<ScheduledPost | null>;
 }
 
 export type RuntimeQueueJob = {

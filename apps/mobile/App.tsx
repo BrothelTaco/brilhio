@@ -44,7 +44,7 @@ export default function App() {
   const supportsSupabaseAuth = Boolean(mobileSupabase);
   const supportsDevAuth = !supportsSupabaseAuth && Boolean(devUserId);
 
-  async function refresh(workspaceId?: string | null) {
+  async function refresh() {
     setLoading(true);
     setError(null);
 
@@ -65,27 +65,15 @@ export default function App() {
       }
 
       const sessionResponse = await api.getSession();
-      const nextSession = sessionResponse.data;
-      const nextWorkspaceId =
-        workspaceId ??
-        nextSession.currentWorkspaceId ??
-        nextSession.workspaces[0]?.id ??
-        null;
+      setSession(sessionResponse.data);
 
-      setSession(nextSession);
-
-      if (!nextWorkspaceId) {
-        setDashboard(null);
-        return;
-      }
-
-      const dashboardResponse = await api.getDashboard(nextWorkspaceId);
+      const dashboardResponse = await api.getDashboard();
       setDashboard(dashboardResponse.data);
     } catch (loadError) {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Failed to load the mobile workspace.",
+          : "Failed to load the app.",
       );
     } finally {
       setLoading(false);

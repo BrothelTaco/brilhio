@@ -10,7 +10,6 @@ import {
   updateApprovalTaskStatusInputSchema,
 } from "@brilhio/contracts";
 import { localToUtc } from "@brilhio/backend";
-import { ensureWorkspaceAccess } from "../auth";
 import { persistAndEnqueueJob } from "../context";
 
 function sanitizeFileSegment(value: string) {
@@ -25,38 +24,20 @@ function sanitizeFileSegment(value: string) {
 export const contentRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/media-assets/upload-session",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = createMediaUploadSessionInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
+      const userId = request.brilhioAuth!.user.id;
       const extensionIndex = parsed.data.fileName.lastIndexOf(".");
-      const extension =
-        extensionIndex >= 0
-          ? parsed.data.fileName.slice(extensionIndex).toLowerCase()
-          : "";
-      const path = [
-        parsed.data.workspaceId,
-        "uploads",
-        `${randomUUID()}-${sanitizeFileSegment(parsed.data.title)}${extension}`,
-      ].join("/");
+      const extension = extensionIndex >= 0
+        ? parsed.data.fileName.slice(extensionIndex).toLowerCase()
+        : "";
+      const path = [userId, "uploads", `${randomUUID()}-${sanitizeFileSegment(parsed.data.title)}${extension}`].join("/");
 
       if (!app.brilhio.supabaseAdmin) {
         return {
@@ -67,23 +48,17 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
             uploadToken: `memory-upload-${randomUUID()}`,
             contentType: parsed.data.contentType,
           },
-          meta: {
-            storageMode: "memory",
-          },
+          meta: { storageMode: "memory" },
         };
       }
 
       const { data, error } = await app.brilhio.supabaseAdmin.storage
         .from(app.brilhio.config.storageBucket)
-        .createSignedUploadUrl(path, {
-          upsert: false,
-        });
+        .createSignedUploadUrl(path, { upsert: false });
 
       if (error || !data?.token) {
         reply.code(500);
-        return {
-          error: error?.message ?? "Failed to create the upload session.",
-        };
+        return { error: error?.message ?? "Failed to create the upload session." };
       }
 
       return {
@@ -100,120 +75,73 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/media-assets",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = createMediaAssetInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
       return {
-        data: await app.brilhio.repository.createMediaAsset(parsed.data),
+        data: await app.brilhio.repository.createMediaAsset({
+          ...parsed.data,
+          userId: request.brilhioAuth!.user.id,
+        }),
       };
     },
   );
 
   app.post(
     "/content-items",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = createContentItemInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
       return {
-        data: await app.brilhio.repository.createContentItem(parsed.data),
+        data: await app.brilhio.repository.createContentItem({
+          ...parsed.data,
+          userId: request.brilhioAuth!.user.id,
+        }),
       };
     },
   );
 
   app.post(
     "/approval-tasks",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = createApprovalTaskInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
       return {
-        data: await app.brilhio.repository.createApprovalTask(parsed.data),
+        data: await app.brilhio.repository.createApprovalTask({
+          ...parsed.data,
+          userId: request.brilhioAuth!.user.id,
+        }),
       };
     },
   );
 
   app.patch<{ Params: { approvalTaskId: string } }>(
     "/approval-tasks/:approvalTaskId/status",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = updateApprovalTaskStatusInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
       const updated = await app.brilhio.repository.updateApprovalTaskStatus(
-        parsed.data.workspaceId,
+        request.brilhioAuth!.user.id,
         request.params.approvalTaskId,
         parsed.data.status,
       );
@@ -223,46 +151,26 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
         return { error: "Approval task not found." };
       }
 
-      return {
-        data: updated,
-      };
+      return { data: updated };
     },
   );
 
   app.post(
     "/scheduled-posts",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = schedulePostRequestInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
-      const workspace = await app.brilhio.repository.getWorkspace(parsed.data.workspaceId);
-      if (!workspace) {
-        reply.code(404);
-        return { error: "Workspace not found." };
-      }
-
-      const scheduledForUtc = localToUtc(parsed.data.localScheduledFor, workspace.timezone);
+      const userId = request.brilhioAuth!.user.id;
+      const timezone = await app.brilhio.repository.getUserTimezone(userId);
+      const scheduledForUtc = localToUtc(parsed.data.localScheduledFor, timezone);
 
       const scheduledPost = await app.brilhio.repository.createScheduledPost({
-        workspaceId: parsed.data.workspaceId,
+        userId,
         contentItemId: parsed.data.contentItemId,
         platform: parsed.data.platform,
         scheduledFor: scheduledForUtc,
@@ -271,14 +179,14 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       });
 
       const queueResult = await persistAndEnqueueJob(app.brilhio, {
-        workspaceId: parsed.data.workspaceId,
+        userId,
         type: "publish-scheduled-post",
         targetTable: "scheduled_posts",
         targetId: scheduledPost.id,
         scheduledFor: scheduledForUtc,
         payload: {
           type: "publish-scheduled-post",
-          workspaceId: parsed.data.workspaceId,
+          userId,
           scheduledPostId: scheduledPost.id,
         },
       });
@@ -295,35 +203,22 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/jobs",
-    {
-      preHandler: app.requireAuth,
-    },
+    { preHandler: app.requireAuth },
     async (request, reply) => {
       const parsed = queueJobInputSchema.safeParse(request.body);
-
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
       }
 
-      const hasAccess = await ensureWorkspaceAccess(
-        app.brilhio,
-        request.brilhioAuth!.user.id,
-        parsed.data.workspaceId,
-      );
-
-      if (!hasAccess) {
-        reply.code(403);
-        return { error: "Workspace access denied." };
-      }
-
-      const result = await persistAndEnqueueJob(app.brilhio, parsed.data);
+      const result = await persistAndEnqueueJob(app.brilhio, {
+        ...parsed.data,
+        userId: request.brilhioAuth!.user.id,
+      });
 
       return {
         data: result.jobRecord,
-        meta: {
-          enqueued: result.enqueued,
-        },
+        meta: { enqueued: result.enqueued },
       };
     },
   );

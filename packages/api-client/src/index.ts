@@ -14,7 +14,6 @@ import type {
   QueueJobInput,
   ScheduledPost,
   UpdateApprovalTaskStatusInput,
-  UpdateCurrentWorkspaceInput,
 } from "@brilhio/contracts";
 
 type ApiClientConfig = {
@@ -51,9 +50,7 @@ export class BrilhioApiClient {
   }
 
   private async buildHeaders() {
-    const headers = new Headers({
-      "Content-Type": "application/json",
-    });
+    const headers = new Headers({ "Content-Type": "application/json" });
 
     const accessToken =
       typeof this.config.getAccessToken === "function"
@@ -101,19 +98,12 @@ export class BrilhioApiClient {
     return this.request<AuthSession>("/api/me");
   }
 
-  setCurrentWorkspace(input: UpdateCurrentWorkspaceInput) {
-    return this.request<AuthSession>("/api/me/current-workspace", {
-      method: "PATCH",
-      body: JSON.stringify(input),
-    });
+  getDashboard() {
+    return this.request<DashboardSnapshot>("/api/me/dashboard");
   }
 
-  getDashboard(workspaceId: string) {
-    return this.request<DashboardSnapshot>(`/api/workspaces/${workspaceId}/dashboard`);
-  }
-
-  listMediaAssets(workspaceId: string) {
-    return this.request<MediaAsset[]>(`/api/workspaces/${workspaceId}/media-assets`);
+  listMediaAssets() {
+    return this.request<MediaAsset[]>("/api/me/media-assets");
   }
 
   createMediaAsset(input: CreateMediaAssetInput) {
@@ -144,20 +134,14 @@ export class BrilhioApiClient {
     });
   }
 
-  updateApprovalTaskStatus(
-    approvalTaskId: string,
-    input: UpdateApprovalTaskStatusInput,
-  ) {
+  updateApprovalTaskStatus(approvalTaskId: string, input: UpdateApprovalTaskStatusInput) {
     return this.request<import("@brilhio/contracts").ApprovalTask>(
       `/api/approval-tasks/${approvalTaskId}/status`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(input),
-      },
+      { method: "PATCH", body: JSON.stringify(input) },
     );
   }
 
-  createScheduledPost(input: import("@brilhio/contracts").SchedulePostInput) {
+  createScheduledPost(input: import("@brilhio/contracts").SchedulePostRequestInput) {
     return this.request<ScheduledPostCreationResult>("/api/scheduled-posts", {
       method: "POST",
       body: JSON.stringify(input),
@@ -171,26 +155,18 @@ export class BrilhioApiClient {
     });
   }
 
-  listProviders(workspaceId: string) {
-    return this.request<ProviderCatalogItem[]>(
-      `/api/providers?workspaceId=${encodeURIComponent(workspaceId)}`,
-    );
+  listProviders() {
+    return this.request<ProviderCatalogItem[]>("/api/providers");
   }
 
-  connectProvider(
-    platform: Platform,
-    input: CreateProviderConnectionInput,
-  ) {
+  connectProvider(platform: Platform, input: CreateProviderConnectionInput) {
     return this.request<{
       provider: Omit<ProviderCatalogItem, "account">;
       account: import("@brilhio/contracts").SocialAccount;
-    }>(
-      `/api/providers/${encodeURIComponent(platform)}/connect`,
-      {
-        method: "POST",
-        body: JSON.stringify(input),
-      },
-    );
+    }>(`/api/providers/${encodeURIComponent(platform)}/connect`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 }
 

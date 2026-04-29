@@ -18,14 +18,6 @@ export const socialAccountStatusSchema = z.enum([
 ]);
 export type SocialAccountStatus = z.infer<typeof socialAccountStatusSchema>;
 
-export const workspaceMemberRoleSchema = z.enum([
-  "owner",
-  "editor",
-  "approver",
-  "viewer",
-]);
-export type WorkspaceMemberRole = z.infer<typeof workspaceMemberRoleSchema>;
-
 export const assetKindSchema = z.enum(["image", "video", "carousel", "document"]);
 export type AssetKind = z.infer<typeof assetKindSchema>;
 
@@ -82,7 +74,6 @@ export const jobTargetTableSchema = z.enum([
   "scheduled_posts",
   "social_accounts",
   "provider_webhooks",
-  "workspaces",
 ]);
 export type JobTargetTable = z.infer<typeof jobTargetTableSchema>;
 
@@ -93,27 +84,25 @@ export const authenticatedUserSchema = z.object({
 });
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 
-export const workspaceSchema = z.object({
-  id: entityIdSchema,
-  name: z.string().min(1),
-  slug: z.string().min(1),
-  timezone: z.string().min(1),
-  ownerName: z.string().min(1),
-  createdAt: z.string().min(1),
-});
-export type Workspace = z.infer<typeof workspaceSchema>;
-
 export const userProfileSchema = z.object({
-  id: entityIdSchema,
-  displayName: z.string().min(1),
-  email: z.string().email().nullable(),
-  currentWorkspaceId: entityIdSchema.nullable(),
+  id: z.string().min(1),
+  userId: entityIdSchema,
+  email: z.string(),
+  timezone: z.string().default("UTC"),
+  stripeCustomerId: z.string().nullable(),
+  createdAt: z.string(),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
+export const authSessionSchema = z.object({
+  user: authenticatedUserSchema,
+  profile: userProfileSchema,
+});
+export type AuthSession = z.infer<typeof authSessionSchema>;
+
 export const socialAccountSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   platform: platformSchema,
   handle: z.string().min(1),
   status: socialAccountStatusSchema,
@@ -127,7 +116,7 @@ export type SocialAccount = z.infer<typeof socialAccountSchema>;
 
 export const mediaAssetSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   kind: assetKindSchema,
   title: z.string().min(1),
   storagePath: z.string().min(1),
@@ -139,7 +128,7 @@ export type MediaAsset = z.infer<typeof mediaAssetSchema>;
 
 export const contentItemSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   title: z.string().min(1),
   brief: z.string().min(1),
   campaign: z.string().min(1),
@@ -152,7 +141,7 @@ export type ContentItem = z.infer<typeof contentItemSchema>;
 
 export const scheduledPostSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   contentItemId: entityIdSchema,
   platform: platformSchema,
   scheduledFor: z.string().min(1),
@@ -166,7 +155,7 @@ export type ScheduledPost = z.infer<typeof scheduledPostSchema>;
 
 export const aiSuggestionSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   contentItemId: entityIdSchema,
   type: z.enum(["caption", "hashtag_set", "publish_window", "content_idea"]),
   title: z.string().min(1),
@@ -177,7 +166,7 @@ export type AiSuggestion = z.infer<typeof aiSuggestionSchema>;
 
 export const approvalTaskSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   contentItemId: entityIdSchema,
   reviewerUserId: entityIdSchema.nullable().optional(),
   reviewerName: z.string().min(1),
@@ -189,7 +178,7 @@ export type ApprovalTask = z.infer<typeof approvalTaskSchema>;
 
 export const jobRecordSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   type: jobTypeSchema,
   status: jobStatusSchema,
   targetTable: jobTargetTableSchema,
@@ -205,7 +194,7 @@ export type JobRecord = z.infer<typeof jobRecordSchema>;
 
 export const providerWebhookSchema = z.object({
   id: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema.nullable(),
   platform: platformSchema,
   eventType: z.string().min(1),
   receivedAt: z.string().min(1),
@@ -213,16 +202,8 @@ export const providerWebhookSchema = z.object({
 });
 export type ProviderWebhook = z.infer<typeof providerWebhookSchema>;
 
-export const authSessionSchema = z.object({
-  user: authenticatedUserSchema,
-  profile: userProfileSchema,
-  workspaces: z.array(workspaceSchema),
-  currentWorkspaceId: entityIdSchema.nullable(),
-});
-export type AuthSession = z.infer<typeof authSessionSchema>;
-
 export const createMediaAssetInputSchema = z.object({
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   kind: assetKindSchema,
   title: z.string().min(1),
   storagePath: z.string().min(1),
@@ -232,7 +213,6 @@ export const createMediaAssetInputSchema = z.object({
 export type CreateMediaAssetInput = z.infer<typeof createMediaAssetInputSchema>;
 
 export const createMediaUploadSessionInputSchema = z.object({
-  workspaceId: entityIdSchema,
   kind: assetKindSchema,
   title: z.string().min(1),
   fileName: z.string().min(1),
@@ -255,7 +235,7 @@ export const mediaUploadSessionSchema = z.object({
 export type MediaUploadSession = z.infer<typeof mediaUploadSessionSchema>;
 
 export const createContentItemInputSchema = z.object({
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   title: z.string().min(1),
   brief: z.string().min(1),
   campaign: z.string().min(1),
@@ -265,7 +245,7 @@ export const createContentItemInputSchema = z.object({
 export type CreateContentItemInput = z.infer<typeof createContentItemInputSchema>;
 
 export const createApprovalTaskInputSchema = z.object({
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   contentItemId: entityIdSchema,
   reviewerName: z.string().min(1),
   reviewerUserId: entityIdSchema.nullable().default(null),
@@ -275,7 +255,6 @@ export const createApprovalTaskInputSchema = z.object({
 export type CreateApprovalTaskInput = z.infer<typeof createApprovalTaskInputSchema>;
 
 export const updateApprovalTaskStatusInputSchema = z.object({
-  workspaceId: entityIdSchema,
   status: approvalStatusSchema,
 });
 export type UpdateApprovalTaskStatusInput = z.infer<
@@ -283,7 +262,7 @@ export type UpdateApprovalTaskStatusInput = z.infer<
 >;
 
 export const schedulePostInputSchema = z.object({
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   contentItemId: entityIdSchema,
   platform: platformSchema,
   scheduledFor: z.string().min(1),
@@ -292,9 +271,8 @@ export const schedulePostInputSchema = z.object({
 });
 export type SchedulePostInput = z.infer<typeof schedulePostInputSchema>;
 
-// API-layer schema: client sends a naive local datetime (no offset), server converts to UTC.
+// API-layer schema: client sends a naive local datetime, server converts to UTC using user timezone.
 export const schedulePostRequestInputSchema = z.object({
-  workspaceId: entityIdSchema,
   contentItemId: entityIdSchema,
   platform: platformSchema,
   localScheduledFor: z.string().min(1),
@@ -303,13 +281,13 @@ export const schedulePostRequestInputSchema = z.object({
 });
 export type SchedulePostRequestInput = z.infer<typeof schedulePostRequestInputSchema>;
 
-export const updateWorkspaceTimezoneInputSchema = z.object({
+export const updateUserTimezoneInputSchema = z.object({
   timezone: z.string().min(1),
 });
-export type UpdateWorkspaceTimezoneInput = z.infer<typeof updateWorkspaceTimezoneInputSchema>;
+export type UpdateUserTimezoneInput = z.infer<typeof updateUserTimezoneInputSchema>;
 
 export const queueJobInputSchema = z.object({
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
   type: jobTypeSchema,
   targetTable: jobTargetTableSchema,
   targetId: entityIdSchema,
@@ -318,15 +296,7 @@ export const queueJobInputSchema = z.object({
 });
 export type QueueJobInput = z.infer<typeof queueJobInputSchema>;
 
-export const updateCurrentWorkspaceInputSchema = z.object({
-  workspaceId: entityIdSchema,
-});
-export type UpdateCurrentWorkspaceInput = z.infer<
-  typeof updateCurrentWorkspaceInputSchema
->;
-
 export const createProviderConnectionInputSchema = z.object({
-  workspaceId: entityIdSchema,
   platform: platformSchema,
   handle: z.string().min(1),
   audienceLabel: z.string().min(1),
@@ -353,7 +323,7 @@ export type ProviderCatalogItem = z.infer<typeof providerCatalogItemSchema>;
 
 const baseJobPayloadSchema = z.object({
   jobRecordId: entityIdSchema,
-  workspaceId: entityIdSchema,
+  userId: entityIdSchema,
 });
 
 export const buildCalendarJobPayloadSchema = baseJobPayloadSchema.extend({
@@ -413,7 +383,6 @@ export const jobPayloadSchema = z.discriminatedUnion("type", [
 export type JobPayload = z.infer<typeof jobPayloadSchema>;
 
 export const dashboardSnapshotSchema = z.object({
-  workspace: workspaceSchema,
   socialAccounts: z.array(socialAccountSchema),
   mediaAssets: z.array(mediaAssetSchema),
   contentItems: z.array(contentItemSchema),
