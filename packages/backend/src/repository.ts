@@ -18,6 +18,8 @@ import type {
   ScheduledPost,
   SchedulePostInput,
   SocialAccount,
+  UpdateUserStrategyProfileInput,
+  UserStrategyProfile,
 } from "@brilhio/contracts";
 import {
   demoAiSuggestions,
@@ -33,6 +35,7 @@ import {
 } from "@brilhio/utils";
 import { decryptSecret, encryptSecret } from "./crypto";
 import type {
+  BillingProfileUpdate,
   CreateAiSuggestionParams,
   JobRecordUpdate,
   Repository,
@@ -51,6 +54,41 @@ function firstNameFromEmail(email: string | null) {
   if (!email) return "Brilhio";
   const [candidate] = email.split("@");
   return candidate ? candidate.replace(/[._-]+/g, " ") : "Brilhio";
+}
+
+function emptyStrategyProfile(userId: string): UserStrategyProfile {
+  return {
+    userId,
+    identityType: null,
+    goals: [],
+    voiceAttributes: [],
+    platformPriorities: {},
+    contentPillars: [],
+    audienceNotes: null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function mapStrategyProfile(row: {
+  user_id: string;
+  identity_type: string | null;
+  goals: string[] | null;
+  voice_attributes: string[] | null;
+  platform_priorities: Record<string, string> | null;
+  content_pillars: string[] | null;
+  audience_notes: string | null;
+  updated_at: string;
+}): UserStrategyProfile {
+  return {
+    userId: row.user_id,
+    identityType: row.identity_type,
+    goals: row.goals ?? [],
+    voiceAttributes: row.voice_attributes ?? [],
+    platformPriorities: row.platform_priorities ?? {},
+    contentPillars: row.content_pillars ?? [],
+    audienceNotes: row.audience_notes,
+    updatedAt: row.updated_at,
+  };
 }
 
 function mapMediaAsset(row: {
@@ -239,6 +277,8 @@ export class MemoryRepository implements Repository {
   private aiSuggestions = structuredClone(demoAiSuggestions);
   private approvalTasks = structuredClone(demoApprovalTasks);
   private jobs = structuredClone(demoJobs);
+  private strategyProfiles = new Map<string, UserStrategyProfile>();
+  private billingProfiles = new Map<string, BillingProfileUpdate>();
 
   async getAuthSession(user: AuthenticatedUser): Promise<AuthSession> {
     return {
@@ -262,6 +302,64 @@ export class MemoryRepository implements Repository {
       return this.session.profile.timezone;
     }
     return "UTC";
+  }
+
+  async getUserStrategyProfile(userId: string): Promise<UserStrategyProfile> {
+    return structuredClone(this.strategyProfiles.get(userId) ?? emptyStrategyProfile(userId));
+  }
+
+  async updateUserStrategyProfile(
+    userId: string,
+    input: UpdateUserStrategyProfileInput,
+  ): Promise<UserStrategyProfile> {
+    const updated: UserStrategyProfile = {
+      userId,
+      identityType: input.identityType,
+      goals: input.goals,
+      voiceAttributes: input.voiceAttributes,
+      platformPriorities: input.platformPriorities,
+      contentPillars: input.contentPillars,
+      audienceNotes: input.audienceNotes,
+      updatedAt: new Date().toISOString(),
+    };
+    this.strategyProfiles.set(userId, updated);
+    return structuredClone(updated);
+  }
+
+  async ensureStripeCustomerId(userId: string, _email: string | null, stripeCustomerId: string) {
+    if (this.session.profile.userId === userId) {
+      this.session.profile.stripeCustomerId = stripeCustomerId;
+    }
+    this.billingProfiles.set(userId, {
+      ...(this.billingProfiles.get(userId) ?? {}),
+      stripeCustomerId,
+    });
+  }
+
+  async updateBillingProfileByUserId(userId: string, update: BillingProfileUpdate) {
+    this.billingProfiles.set(userId, {
+      ...(this.billingProfiles.get(userId) ?? {}),
+      ...update,
+    });
+    if (this.session.profile.userId === userId) {
+      Object.assign(this.session.profile, update);
+    }
+  }
+
+  async updateBillingProfileByStripeCustomerId(stripeCustomerId: string, update: BillingProfileUpdate) {
+    const found = [...this.billingProfiles.entries()].find(
+      ([, profile]) => profile.stripeCustomerId === stripeCustomerId,
+    );
+    if (found) {
+      await this.updateBillingProfileByUserId(found[0], update);
+    }
+  }
+
+  async userHasActiveSubscription(userId: string) {
+    const status =
+      this.billingProfiles.get(userId)?.subscriptionStatus ??
+      (this.session.profile.userId === userId ? this.session.profile.subscriptionStatus : null);
+    return status === "active" || status === "trialing";
   }
 
   async listOverdueJobRecords(): Promise<JobRecord[]> {
@@ -520,7 +618,7 @@ export class SupabaseRepository implements Repository {
   async getAuthSession(user: AuthenticatedUser): Promise<AuthSession> {
     const { data: profileRow, error } = await this.supabase
       .from("profiles")
-      .select("id, user_id, email, timezone, stripe_customer_id, created_at")
+      .select("id, user_id, email, timezone, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, created_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -535,6 +633,10 @@ export class SupabaseRepository implements Repository {
           email: user.email ?? "",
           timezone: "UTC",
           stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          subscriptionStatus: null,
+          subscriptionCurrentPeriodEnd: null,
+          subscriptionCancelAtPeriodEnd: false,
           createdAt: new Date().toISOString(),
         },
       };
@@ -548,6 +650,10 @@ export class SupabaseRepository implements Repository {
         email: profileRow.email,
         timezone: profileRow.timezone ?? "UTC",
         stripeCustomerId: profileRow.stripe_customer_id ?? null,
+        stripeSubscriptionId: profileRow.stripe_subscription_id ?? null,
+        subscriptionStatus: profileRow.subscription_status ?? null,
+        subscriptionCurrentPeriodEnd: profileRow.subscription_current_period_end ?? null,
+        subscriptionCancelAtPeriodEnd: profileRow.subscription_cancel_at_period_end ?? false,
         createdAt: profileRow.created_at,
       },
     };
@@ -569,6 +675,92 @@ export class SupabaseRepository implements Repository {
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data?.timezone ?? "UTC";
+  }
+
+  async getUserStrategyProfile(userId: string): Promise<UserStrategyProfile> {
+    const { data, error } = await this.supabase
+      .from("user_strategy_profiles")
+      .select("user_id, identity_type, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, updated_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapStrategyProfile(data) : emptyStrategyProfile(userId);
+  }
+
+  async updateUserStrategyProfile(
+    userId: string,
+    input: UpdateUserStrategyProfileInput,
+  ): Promise<UserStrategyProfile> {
+    const { data, error } = await this.supabase
+      .from("user_strategy_profiles")
+      .upsert({
+        user_id: userId,
+        identity_type: input.identityType,
+        goals: input.goals,
+        voice_attributes: input.voiceAttributes,
+        platform_priorities: input.platformPriorities,
+        content_pillars: input.contentPillars,
+        audience_notes: input.audienceNotes,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" })
+      .select("user_id, identity_type, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapStrategyProfile(data);
+  }
+
+  async ensureStripeCustomerId(userId: string, email: string | null, stripeCustomerId: string) {
+    const { error } = await this.supabase
+      .from("profiles")
+      .upsert({
+        user_id: userId,
+        email: email ?? "",
+        stripe_customer_id: stripeCustomerId,
+      }, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+  }
+
+  private billingPatch(update: BillingProfileUpdate) {
+    const patch: Record<string, unknown> = {};
+    if (update.stripeCustomerId !== undefined) patch.stripe_customer_id = update.stripeCustomerId;
+    if (update.stripeSubscriptionId !== undefined) patch.stripe_subscription_id = update.stripeSubscriptionId;
+    if (update.subscriptionStatus !== undefined) patch.subscription_status = update.subscriptionStatus;
+    if (update.subscriptionCurrentPeriodEnd !== undefined) {
+      patch.subscription_current_period_end = update.subscriptionCurrentPeriodEnd;
+    }
+    if (update.subscriptionCancelAtPeriodEnd !== undefined) {
+      patch.subscription_cancel_at_period_end = update.subscriptionCancelAtPeriodEnd;
+    }
+    return patch;
+  }
+
+  async updateBillingProfileByUserId(userId: string, update: BillingProfileUpdate) {
+    const { error } = await this.supabase
+      .from("profiles")
+      .update(this.billingPatch(update))
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  }
+
+  async updateBillingProfileByStripeCustomerId(
+    stripeCustomerId: string,
+    update: BillingProfileUpdate,
+  ) {
+    const { error } = await this.supabase
+      .from("profiles")
+      .update(this.billingPatch(update))
+      .eq("stripe_customer_id", stripeCustomerId);
+    if (error) throw new Error(error.message);
+  }
+
+  async userHasActiveSubscription(userId: string) {
+    const { data, error } = await this.supabase
+      .from("profiles")
+      .select("subscription_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.subscription_status === "active" || data?.subscription_status === "trialing";
   }
 
   async listOverdueJobRecords(): Promise<JobRecord[]> {

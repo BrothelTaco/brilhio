@@ -21,6 +21,10 @@ export type AppConfig = {
   redisUrl: string | null;
   webAppUrl: string | null;
   storageBucket: string;
+  stripeSecretKey: string | null;
+  stripePriceId: string | null;
+  stripeWebhookSecret: string | null;
+  requireSubscription: boolean;
 };
 
 export type AppContext = {
@@ -46,6 +50,10 @@ export function readAppConfig(env = process.env): AppConfig {
     redisUrl: env.REDIS_URL ?? null,
     webAppUrl: env.WEB_APP_URL ?? null,
     storageBucket: env.SUPABASE_STORAGE_BUCKET ?? "media-assets",
+    stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
+    stripePriceId: env.STRIPE_PRICE_ID ?? null,
+    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
+    requireSubscription: env.REQUIRE_SUBSCRIPTION === "true",
   };
 }
 

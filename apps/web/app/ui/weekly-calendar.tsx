@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { scheduleDays, scheduledPosts } from "./scaffold-data";
+import { scheduleDays } from "./scaffold-data";
 import { PostCard } from "./post-tooltip";
 import type { Post } from "./post-tooltip";
+import type { ScheduledPost } from "@brilhio/contracts";
 
 const MAX_WEEKS = 4;
 
@@ -45,11 +46,46 @@ function formatMonthRange(start: Date, end: Date): string {
   return `${sm} ${sy}`;
 }
 
-function getPostsForDay(day: string, weekOffset: number): Post[] {
-  if (weekOffset !== 0) return [];
-  return [...(scheduledPosts as unknown as (Post & { day: string })[])
-    .filter((p) => p.day === day)]
-    .sort((a, b) => parseMinutes(a.time) - parseMinutes(b.time));
+function sameDate(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function postType(post: ScheduledPost): Post["type"] {
+  return post.platform === "x" ? "text-only" : "media+caption";
+}
+
+function mediaColor(post: ScheduledPost) {
+  if (post.platform === "instagram") return "linear-gradient(135deg, #ff7a59, #7c3aed)";
+  if (post.platform === "tiktok") return "linear-gradient(135deg, #111827, #06b6d4)";
+  if (post.platform === "facebook") return "linear-gradient(135deg, #2563eb, #93c5fd)";
+  return null;
+}
+
+function getPostsForDay(posts: ScheduledPost[], date: Date): Post[] {
+  return posts
+    .filter((post) => sameDate(new Date(post.scheduledFor), date))
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime(),
+    )
+    .map((post) => ({
+      platform: post.platform,
+      time: formatTime(new Date(post.scheduledFor)),
+      type: postType(post),
+      mediaColor: mediaColor(post),
+      caption: post.platformCaption,
+    }));
 }
 
 function isToday(date: Date): boolean {
@@ -61,7 +97,7 @@ function isToday(date: Date): boolean {
   );
 }
 
-export function WeeklyCalendar() {
+export function WeeklyCalendar({ scheduledPosts = [] }: { scheduledPosts?: ScheduledPost[] }) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const monday = addDays(getThisMonday(), weekOffset * 7);
@@ -98,7 +134,7 @@ export function WeeklyCalendar() {
         {scheduleDays.map((day, i) => {
           const date = weekDates[i]!;
           const today = isToday(date);
-          const posts = getPostsForDay(day, weekOffset);
+          const posts = getPostsForDay(scheduledPosts, date);
 
           return (
             <div key={day} className={`day-column ${today ? "day-column-today" : ""}`}>

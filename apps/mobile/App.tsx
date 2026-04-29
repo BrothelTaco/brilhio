@@ -299,8 +299,10 @@ export default function App() {
           </Text>
           <View style={styles.heroMeta}>
             <View style={styles.metaCard}>
-              <Text style={styles.metaLabel}>Workspace</Text>
-              <Text style={styles.metaValue}>{dashboard.workspace.name}</Text>
+              <Text style={styles.metaLabel}>Profile</Text>
+              <Text style={styles.metaValue}>
+                {session?.profile.email ?? "Brilhio"}
+              </Text>
             </View>
             <View style={styles.metaCard}>
               <Text style={styles.metaLabel}>Platforms</Text>

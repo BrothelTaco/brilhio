@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ProductShell } from "../ui/product-shell";
 import { PlatformIcon } from "../ui/platform-icons";
 import { connectionChecklist, automationGuardrails } from "../ui/scaffold-data";
+import { apiFetch } from "../../lib/api-client";
 
 type Platform = "instagram" | "tiktok" | "facebook" | "x";
 type SocialAccountStatus = "connected" | "attention_required" | "disconnected";
@@ -32,8 +33,6 @@ type ConnectState =
   | { phase: "loading"; platform: Platform }
   | { phase: "success"; platform: Platform }
   | { phase: "error"; platform: Platform; message: string };
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 const FALLBACK_PROVIDERS: ProviderItem[] = [
   {
@@ -94,7 +93,7 @@ export default function AccountsPage() {
 
   const fetchProviders = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/providers`, { credentials: "include" });
+      const res = await apiFetch("/api/providers");
       if (res.ok) {
         const json = await res.json();
         setProviders(json.data);
@@ -122,9 +121,8 @@ export default function AccountsPage() {
     if (!handle.trim()) return;
     setConnectState({ phase: "loading", platform });
     try {
-      const res = await fetch(`${API_BASE}/api/providers/${platform}/connect`, {
+      const res = await apiFetch(`/api/providers/${platform}/connect`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           platform,

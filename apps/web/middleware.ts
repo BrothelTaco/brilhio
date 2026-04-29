@@ -1,11 +1,29 @@
 import { createServerClient } from "@supabase/ssr";
+import type { CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_PATHS = ["/schedule", "/dashboard", "/account", "/accounts", "/onboarding", "/content", "/strategy"] as const;
+const PROTECTED_PATHS = ["/schedule", "/dashboard", "/account", "/accounts", "/onboarding", "/content", "/strategy", "/billing"] as const;
+const BILLING_EXEMPT_PATHS = ["/billing", "/onboarding"] as const;
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options: CookieOptions;
+};
 
 function routeRequiresAuth(pathname: string) {
   return PROTECTED_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
+function routeRequiresSubscription(pathname: string) {
+  if (process.env.REQUIRE_SUBSCRIPTION !== "true") return false;
+  return (
+    routeRequiresAuth(pathname) &&
+    !BILLING_EXEMPT_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
   );
 }
 
@@ -24,7 +42,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
@@ -47,6 +65,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  if (routeRequiresSubscription(request.nextUrl.pathname)) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("subscription_status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const hasAccess =
+      data?.subscription_status === "active" ||
+      data?.subscription_status === "trialing";
+
+    if (!hasAccess) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/billing";
+      redirectUrl.search = "";
+      redirectUrl.searchParams.set("reason", "subscription-required");
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   return supabaseResponse;
 }
 
@@ -59,5 +96,6 @@ export const config = {
     "/account/:path*",
     "/accounts/:path*",
     "/onboarding/:path*",
+    "/billing/:path*",
   ],
 };

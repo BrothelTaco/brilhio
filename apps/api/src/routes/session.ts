@@ -1,5 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
-import { updateUserTimezoneInputSchema } from "@brilhio/contracts";
+import {
+  updateUserStrategyProfileInputSchema,
+  updateUserTimezoneInputSchema,
+} from "@brilhio/contracts";
 import { isValidIanaTimezone } from "@brilhio/backend";
 
 export const sessionRoutes: FastifyPluginAsync = async (app) => {
@@ -32,6 +35,35 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       );
 
       return { data: { timezone: parsed.data.timezone } };
+    },
+  );
+
+  app.get(
+    "/me/strategy-profile",
+    { preHandler: app.requireAuth },
+    async (request) => ({
+      data: await app.brilhio.repository.getUserStrategyProfile(
+        request.brilhioAuth!.user.id,
+      ),
+    }),
+  );
+
+  app.put(
+    "/me/strategy-profile",
+    { preHandler: app.requireAuth },
+    async (request, reply) => {
+      const parsed = updateUserStrategyProfileInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        reply.code(400);
+        return { error: parsed.error.flatten() };
+      }
+
+      return {
+        data: await app.brilhio.repository.updateUserStrategyProfile(
+          request.brilhioAuth!.user.id,
+          parsed.data,
+        ),
+      };
     },
   );
 };

@@ -11,6 +11,8 @@ The initial migration sets up the product domain for:
 - approval tasks
 - background job records
 - provider webhooks
+- user-owned profiles and strategy profile settings
 
-RLS is enabled by default, but policies are intentionally left for the next authentication pass.
+RLS is enabled for user-owned rows. Apply every file in `supabase/migrations`
+to the real Supabase project before production deployment.
 

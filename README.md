@@ -67,6 +67,21 @@ pnpm typecheck
 pnpm build
 ```
 
+## Environment
+
+Copy `.env.example` and fill the production values before deployment:
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_STORAGE_BUCKET` for media uploads
+- `APP_ENCRYPTION_KEY` for stored provider tokens
+- `REDIS_URL` for BullMQ workers
+- `OPENAI_API_KEY` and optional `OPENAI_MODEL` for AI worker jobs
+- `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, and `WEB_APP_URL` for signup Checkout
+- `REQUIRE_SUBSCRIPTION=true` in production once Stripe webhooks are configured
+- `NEXT_PUBLIC_API_BASE_URL` for the web app API origin
+
+Apply the SQL in `supabase/migrations` to the target Supabase project before pointing production traffic at it.
+
 ## Product direction encoded in this scaffold
 
 - Multi-platform publishing is modeled explicitly instead of hidden inside app-specific code.
@@ -78,19 +93,22 @@ pnpm build
 
 - Supabase-backed repository layer with a memory fallback for local/offline development
 - session-aware API auth with Supabase JWT support and development identity headers
-- current-workspace session model backed by `user_profiles.current_workspace_id`
+- user-owned session/profile model backed by `profiles`
 - CRUD routes for media assets, content items, approval tasks, scheduled posts, and queued jobs
 - BullMQ queue integration with persisted `job_records`
 - signed upload session creation for Supabase Storage media uploads
 - manual provider catalog and connection flow for Instagram, TikTok, Facebook, and X
 - sandbox worker publishing for the supported providers
-- web and mobile apps now fetch real session/dashboard data through the shared API client
+- web and mobile apps now fetch real session/dashboard data through authenticated API calls
 - production auth UI for web and mobile using Supabase Auth
+- Stripe Checkout session creation after signup
+- Stripe webhook handling for checkout/subscription status updates
+- OpenAI Responses API calls for caption, platform variant, and calendar AI jobs
 
 ## Next implementation steps
 
 1. Replace sandbox provider publishing with live platform adapters and reviewed OAuth flows per provider.
 2. Add signed download URLs and richer media previews across web and mobile.
-3. Replace heuristic AI generation with your preferred model orchestration and prompt management.
+3. Add prompt/version management and evaluation coverage for AI generation.
 4. Add tests around queue processing, repository mappings, auth state, and provider flows.
 5. Add mobile-native media picking and upload UX on top of the signed upload session API.

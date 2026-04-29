@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductShell } from "../ui/product-shell";
 import { useTheme } from "../ui/theme-provider";
+import { apiFetch } from "../../lib/api-client";
 import {
   audienceSignals,
   contentPillars,
@@ -14,7 +15,25 @@ import {
   voiceAttributes,
 } from "../ui/scaffold-data";
 
-const DEMO_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+type StrategyProfile = {
+  identityType: string | null;
+  goals: string[];
+  voiceAttributes: string[];
+  platformPriorities: Record<string, string>;
+  contentPillars: string[];
+  audienceNotes: string | null;
+};
+
+const DEFAULT_STRATEGY: StrategyProfile = {
+  identityType: "Band",
+  goals: ["Grow fandom", "Sell tickets"],
+  voiceAttributes: [...voiceAttributes],
+  platformPriorities: Object.fromEntries(
+    platformPriorities.map((item) => [item.platform, item.priority]),
+  ),
+  contentPillars: contentPillars.map((pillar) => pillar.title),
+  audienceNotes: "",
+};
 
 function getIanaTimezones(): string[] {
   try {
@@ -50,9 +69,8 @@ function TimezoneSelector() {
     setTimezone(next);
     setStatus("saving");
     try {
-      const res = await fetch(`${DEMO_API_BASE}/api/me/timezone`, {
+      const res = await apiFetch("/api/me/timezone", {
         method: "PATCH",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timezone: next }),
       });
@@ -92,6 +110,183 @@ function TimezoneSelector() {
   );
 }
 
+function toggleValue(values: string[], value: string) {
+  return values.includes(value)
+    ? values.filter((item) => item !== value)
+    : [...values, value];
+}
+
+function StrategyProfilePanel() {
+  const [profile, setProfile] = useState<StrategyProfile>(DEFAULT_STRATEGY);
+  const [status, setStatus] = useState<"loading" | "idle" | "saving" | "saved" | "error">("loading");
+
+  useEffect(() => {
+    let active = true;
+    apiFetch("/api/me/strategy-profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!active) return;
+        if (json?.data) {
+          setProfile({
+            identityType: json.data.identityType ?? DEFAULT_STRATEGY.identityType,
+            goals: json.data.goals.length ? json.data.goals : DEFAULT_STRATEGY.goals,
+            voiceAttributes: json.data.voiceAttributes.length
+              ? json.data.voiceAttributes
+              : DEFAULT_STRATEGY.voiceAttributes,
+            platformPriorities: Object.keys(json.data.platformPriorities).length
+              ? json.data.platformPriorities
+              : DEFAULT_STRATEGY.platformPriorities,
+            contentPillars: json.data.contentPillars.length
+              ? json.data.contentPillars
+              : DEFAULT_STRATEGY.contentPillars,
+            audienceNotes: json.data.audienceNotes ?? "",
+          });
+        }
+        setStatus("idle");
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  });
+
+  async function save(next = profile) {
+    setStatus("saving");
+    try {
+      const response = await apiFetch("/api/me/strategy-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      setStatus(response.ok ? "saved" : "error");
+    } catch {
+      setStatus("error");
+    }
+    setTimeout(() => setStatus("idle"), 2200);
+  }
+
+  function update(next: StrategyProfile) {
+    setProfile(next);
+    void save(next);
+  }
+
+  return (
+    <>
+      <section className="brilhio-card surface-card">
+        <div className="surface-head">
+          <div>
+            <p className="brilhio-eyebrow">Identity</p>
+            <h2>What kind of presence is this?</h2>
+          </div>
+          {status !== "idle" && <span className="state-badge status-info">{status}</span>}
+        </div>
+
+        <div className="chip-row">
+          {identityTypes.map((type) => (
+            <button
+              key={type}
+              className={`capability-chip ${
+                profile.identityType === type ? "capability-chip-selected" : ""
+              }`}
+              onClick={() => update({ ...profile, identityType: type })}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="brilhio-card surface-card">
+        <div className="surface-head">
+          <div>
+            <p className="brilhio-eyebrow">Presence goals</p>
+            <h2>What should social media actually do?</h2>
+          </div>
+        </div>
+
+        <div className="chip-row">
+          {presenceGoals.map((goal) => (
+            <button
+              key={goal}
+              className={`capability-chip ${
+                profile.goals.includes(goal) ? "capability-chip-selected" : ""
+              }`}
+              onClick={() => update({ ...profile, goals: toggleValue(profile.goals, goal) })}
+            >
+              {goal}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="brilhio-card surface-card">
+        <div className="surface-head">
+          <div>
+            <p className="brilhio-eyebrow">Voice and behavior</p>
+            <h2>How the brand should sound</h2>
+          </div>
+        </div>
+
+        <div className="chip-row">
+          {voiceAttributes.map((attribute) => (
+            <button
+              key={attribute}
+              className={`capability-chip ${
+                profile.voiceAttributes.includes(attribute)
+                  ? "capability-chip-selected"
+                  : "capability-chip-alt"
+              }`}
+              onClick={() =>
+                update({
+                  ...profile,
+                  voiceAttributes: toggleValue(profile.voiceAttributes, attribute),
+                })
+              }
+            >
+              {attribute}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="brilhio-card surface-card">
+        <div className="surface-head">
+          <div>
+            <p className="brilhio-eyebrow">Content pillars</p>
+            <h2>What the calendar should pull from</h2>
+          </div>
+        </div>
+
+        <div className="stack-list">
+          {contentPillars.map((pillar) => (
+            <article key={pillar.title} className="insight-card">
+              <strong>{pillar.title}</strong>
+              <p>{pillar.body}</p>
+              <button
+                className={`brilhio-button ${
+                  profile.contentPillars.includes(pillar.title)
+                    ? "brilhio-button-primary"
+                    : "brilhio-button-secondary"
+                }`}
+                onClick={() =>
+                  update({
+                    ...profile,
+                    contentPillars: toggleValue(profile.contentPillars, pillar.title),
+                  })
+                }
+              >
+                {profile.contentPillars.includes(pillar.title) ? "Enabled" : "Enable"}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 export default function AccountPage() {
   const { theme, setTheme } = useTheme();
 
@@ -109,86 +304,7 @@ export default function AccountPage() {
 
       <div className="accounts-layout">
         <section className="stack-list">
-          <section className="brilhio-card surface-card">
-            <div className="surface-head">
-              <div>
-                <p className="brilhio-eyebrow">Identity</p>
-                <h2>What kind of presence is this?</h2>
-              </div>
-            </div>
-
-            <div className="chip-row">
-              {identityTypes.map((type) => (
-                <span
-                  key={type}
-                  className={`capability-chip ${
-                    type === "Band" ? "capability-chip-selected" : ""
-                  }`}
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="brilhio-card surface-card">
-            <div className="surface-head">
-              <div>
-                <p className="brilhio-eyebrow">Presence goals</p>
-                <h2>What should social media actually do?</h2>
-              </div>
-            </div>
-
-            <div className="chip-row">
-              {presenceGoals.map((goal) => (
-                <span
-                  key={goal}
-                  className={`capability-chip ${
-                    goal === "Grow fandom" || goal === "Sell tickets"
-                      ? "capability-chip-selected"
-                      : ""
-                  }`}
-                >
-                  {goal}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="brilhio-card surface-card">
-            <div className="surface-head">
-              <div>
-                <p className="brilhio-eyebrow">Voice and behavior</p>
-                <h2>How the brand should sound</h2>
-              </div>
-            </div>
-
-            <div className="chip-row">
-              {voiceAttributes.map((attribute) => (
-                <span key={attribute} className="capability-chip capability-chip-alt">
-                  {attribute}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="brilhio-card surface-card">
-            <div className="surface-head">
-              <div>
-                <p className="brilhio-eyebrow">Content pillars</p>
-                <h2>What the calendar should pull from</h2>
-              </div>
-            </div>
-
-            <div className="stack-list">
-              {contentPillars.map((pillar) => (
-                <article key={pillar.title} className="insight-card">
-                  <strong>{pillar.title}</strong>
-                  <p>{pillar.body}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <StrategyProfilePanel />
         </section>
 
         <div className="rail-layout">

@@ -3,6 +3,7 @@
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "../../lib/api-client";
 import { createClient } from "../../lib/supabase/client";
 
 export default function JoinPage() {
@@ -19,19 +20,44 @@ export default function JoinPage() {
     setError("");
     setLoading(true);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
 
-    setLoading(false);
-
     if (signUpError) {
+      setLoading(false);
       setError(signUpError.message);
       return;
     }
 
-    // TODO: call API to create Stripe Checkout Session, redirect to session.url
+    if (data.session) {
+      try {
+        const response = await apiFetch("/api/billing/checkout-session", {
+          method: "POST",
+        });
+        const json = await response.json().catch(() => ({}));
+        if (response.ok && typeof json.data?.url === "string") {
+          window.location.assign(json.data.url);
+          return;
+        }
+        if (response.status !== 501) {
+          setError(
+            typeof json.error === "string"
+              ? json.error
+              : "Account created, but checkout could not be started.",
+          );
+          setLoading(false);
+          return;
+        }
+      } catch {
+        setError("Account created, but checkout could not be reached.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    setLoading(false);
     router.push("/onboarding");
     router.refresh();
   }

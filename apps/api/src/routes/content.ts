@@ -24,7 +24,7 @@ function sanitizeFileSegment(value: string) {
 export const contentRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/media-assets/upload-session",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = createMediaUploadSessionInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -75,7 +75,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/media-assets",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = createMediaAssetInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -94,7 +94,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/content-items",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = createContentItemInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -113,7 +113,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/approval-tasks",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = createApprovalTaskInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -132,7 +132,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.patch<{ Params: { approvalTaskId: string } }>(
     "/approval-tasks/:approvalTaskId/status",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = updateApprovalTaskStatusInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -157,7 +157,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/scheduled-posts",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = schedulePostRequestInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -203,7 +203,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/jobs",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsed = queueJobInputSchema.safeParse(request.body);
       if (!parsed.success) {

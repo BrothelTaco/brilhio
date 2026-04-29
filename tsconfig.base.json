@@ -11,13 +11,13 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "jsx": "preserve",
-    "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
-      "@brilhio/api-client": ["packages/api-client/src/index.ts"],
-      "@brilhio/backend": ["packages/backend/src/index.ts"],
-      "@brilhio/contracts": ["packages/contracts/src/index.ts"],
-      "@brilhio/design-system": ["packages/design-system/src/index.ts"],
-      "@brilhio/utils": ["packages/utils/src/index.ts"]
+      "@brilhio/api-client": ["./packages/api-client/src/index.ts"],
+      "@brilhio/backend": ["./packages/backend/src/index.ts"],
+      "@brilhio/contracts": ["./packages/contracts/src/index.ts"],
+      "@brilhio/design-system": ["./packages/design-system/src/index.ts"],
+      "@brilhio/utils": ["./packages/utils/src/index.ts"]
     }
   }
 }

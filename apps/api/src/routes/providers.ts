@@ -5,7 +5,7 @@ import { createProviderConnectionInputSchema, platformSchema } from "@brilhio/co
 export const providerRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/providers",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request) => {
       const userId = request.brilhioAuth!.user.id;
       const accounts = await Promise.all(
@@ -25,7 +25,7 @@ export const providerRoutes: FastifyPluginAsync = async (app) => {
 
   app.post<{ Params: { platform: string } }>(
     "/providers/:platform/connect",
-    { preHandler: app.requireAuth },
+    { preHandler: app.requireSubscription },
     async (request, reply) => {
       const parsedPlatform = platformSchema.safeParse(request.params.platform);
       if (!parsedPlatform.success) {

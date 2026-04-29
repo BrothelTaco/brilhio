@@ -65,11 +65,11 @@ export default function MarketingHome() {
           <a href="#audience">Who it is for</a>
         </nav>
         <div className="marketing-actions">
-          <a href="#final-cta" className="brilhio-button brilhio-button-secondary">
-            Request access
+          <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-secondary">
+            Sign in
           </a>
-          <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-primary">
-            View desktop scaffold
+          <a href={`${webAppBaseUrl}/join`} className="brilhio-button brilhio-button-primary">
+            Sign up
           </a>
         </div>
       </header>
@@ -85,11 +85,11 @@ export default function MarketingHome() {
           </p>
 
           <div className="hero-actions">
-            <a href="#final-cta" className="brilhio-button brilhio-button-primary">
+            <a href={`${webAppBaseUrl}/join`} className="brilhio-button brilhio-button-primary">
               Join the alpha
             </a>
             <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-secondary">
-              See the planner
+              Sign in
             </a>
           </div>
 
@@ -197,14 +197,14 @@ export default function MarketingHome() {
             instead of a compromised primary surface.
           </p>
           <div className="hero-actions">
-            <a href={`${webAppBaseUrl}/`} className="brilhio-button brilhio-button-primary">
+            <a href={`${webAppBaseUrl}/join`} className="brilhio-button brilhio-button-primary">
               Start with web
             </a>
             <a
-              href={`${webAppBaseUrl}/dashboard`}
+              href={`${webAppBaseUrl}/`}
               className="brilhio-button brilhio-button-secondary"
             >
-              Review product pages
+              Sign in
             </a>
           </div>
         </div>

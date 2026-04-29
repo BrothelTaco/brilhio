@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { resolveRequestAuth } from "./auth";
 import { createAppContext, readAppConfig } from "./context";
+import { billingRoutes } from "./routes/billing";
 import { contentRoutes } from "./routes/content";
 import { dashboardRoutes } from "./routes/dashboard";
 import { healthRoutes } from "./routes/health";
@@ -27,6 +28,24 @@ export function createServer() {
 
     request.brilhioAuth = resolved;
   });
+  app.decorate("requireSubscription", async function requireSubscription(request, reply) {
+    await app.requireAuth(request, reply);
+
+    if (
+      !context.config.requireSubscription ||
+      request.brilhioAuth?.user.authSource === "development"
+    ) {
+      return;
+    }
+
+    const hasAccess = await context.repository.userHasActiveSubscription(
+      request.brilhioAuth!.user.id,
+    );
+    if (!hasAccess) {
+      reply.code(402);
+      throw new Error("An active subscription is required.");
+    }
+  });
 
   void app.register(cors, {
     origin: true,
@@ -39,6 +58,7 @@ export function createServer() {
   });
 
   void app.register(healthRoutes);
+  void app.register(billingRoutes, { prefix: "/api" });
   void app.register(sessionRoutes, { prefix: "/api" });
   void app.register(dashboardRoutes, { prefix: "/api" });
   void app.register(contentRoutes, { prefix: "/api" });

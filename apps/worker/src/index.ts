@@ -61,7 +61,10 @@ async function boot() {
       });
 
       try {
-        const result = await processJob(repository, payload, {});
+        const result = await processJob(repository, payload, {
+          openAiApiKey: process.env.OPENAI_API_KEY,
+          openAiModel: process.env.OPENAI_MODEL,
+        });
 
         await repository.updateJobRecord(payload.jobRecordId, {
           status: "completed",

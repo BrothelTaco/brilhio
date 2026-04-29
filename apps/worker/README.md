@@ -13,10 +13,12 @@ Dedicated background execution surface for:
 - BullMQ + Redis for queue consumption
 - persisted job status in `job_records`
 - sandbox publish execution for Instagram, TikTok, Facebook, and X
-- heuristic AI jobs for caption and calendar suggestions until model orchestration is added
+- OpenAI Responses API jobs for captions, platform variants, and calendar suggestions
 
 ## Run
 
 ```bash
 pnpm --filter @brilhio/worker dev
 ```
+
+Set `OPENAI_API_KEY` for AI jobs. `OPENAI_MODEL` defaults to `gpt-5-mini`.

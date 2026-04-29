@@ -17,6 +17,8 @@ import type {
   ScheduledPost,
   SchedulePostInput,
   SocialAccount,
+  UpdateUserStrategyProfileInput,
+  UserStrategyProfile,
 } from "@brilhio/contracts";
 
 export type RepositoryMode = "supabase" | "memory";
@@ -26,6 +28,14 @@ export type JobRecordUpdate = {
   attemptCount?: number;
   lastError?: string | null;
   bullmqJobId?: string | null;
+};
+
+export type BillingProfileUpdate = {
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: string | null;
+  subscriptionCurrentPeriodEnd?: string | null;
+  subscriptionCancelAtPeriodEnd?: boolean;
 };
 
 export type CreateAiSuggestionParams = {
@@ -59,6 +69,12 @@ export interface Repository {
   getAuthSession(user: AuthenticatedUser): Promise<AuthSession>;
   updateUserTimezone(userId: string, timezone: string): Promise<void>;
   getUserTimezone(userId: string): Promise<string>;
+  getUserStrategyProfile(userId: string): Promise<UserStrategyProfile>;
+  updateUserStrategyProfile(userId: string, input: UpdateUserStrategyProfileInput): Promise<UserStrategyProfile>;
+  ensureStripeCustomerId(userId: string, email: string | null, stripeCustomerId: string): Promise<void>;
+  updateBillingProfileByUserId(userId: string, update: BillingProfileUpdate): Promise<void>;
+  updateBillingProfileByStripeCustomerId(stripeCustomerId: string, update: BillingProfileUpdate): Promise<void>;
+  userHasActiveSubscription(userId: string): Promise<boolean>;
   listOverdueJobRecords(): Promise<JobRecord[]>;
   getDashboard(userId: string): Promise<DashboardSnapshot>;
   listMediaAssets(userId: string): Promise<MediaAsset[]>;

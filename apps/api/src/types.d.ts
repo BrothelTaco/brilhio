@@ -9,6 +9,10 @@ declare module "fastify" {
       request: FastifyRequest,
       reply: FastifyReply,
     ) => Promise<void>;
+    requireSubscription: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ) => Promise<void>;
   }
 
   interface FastifyRequest {
@@ -20,4 +24,3 @@ declare module "fastify" {
 }
 
 export {};
-

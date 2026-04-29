@@ -7,7 +7,10 @@ import {
 } from "@brilhio/backend";
 import type { JobPayload } from "@brilhio/contracts";
 
-export type WorkerConfig = Record<string, never>;
+export type WorkerConfig = {
+  openAiApiKey?: string | null;
+  openAiModel?: string | null;
+};
 
 export function createWorkerRepository(config: {
   supabaseUrl?: string | null;
@@ -28,19 +31,31 @@ export function createWorkerRepository(config: {
 async function buildCaptionSuggestion(
   repository: Repository,
   payload: Extract<JobPayload, { type: "generate-caption" }>,
+  config: WorkerConfig,
 ) {
   const contentItem = await repository.getContentItem(payload.contentItemId);
   if (!contentItem) {
     throw new Error("Content item not found for caption generation.");
   }
 
+  const generated = await generateTextWithOpenAI(config, {
+    instructions:
+      "You are Brilhio's social strategist. Return one concise caption recommendation with a specific hook, tone note, and CTA.",
+    input: [
+      `Title: ${contentItem.title}`,
+      `Campaign: ${contentItem.campaign}`,
+      `Brief: ${contentItem.brief}`,
+      `Current caption: ${contentItem.primaryCaption}`,
+    ].join("\n"),
+  });
+
   await repository.createAiSuggestion({
     userId: payload.userId,
     contentItemId: payload.contentItemId,
     type: "caption",
     title: `AI caption direction for ${contentItem.title}`,
-    body: `Lead with the business outcome from "${contentItem.brief}", keep the first sentence shorter than the current draft, and close with a platform-specific CTA. Draft anchor: ${contentItem.primaryCaption}`,
-    modelName: "brilhio-heuristic-v1",
+    body: generated,
+    modelName: config.openAiModel ?? "gpt-5-mini",
     sourceJobId: payload.jobRecordId,
   });
 
@@ -50,19 +65,31 @@ async function buildCaptionSuggestion(
 async function buildPlatformVariants(
   repository: Repository,
   payload: Extract<JobPayload, { type: "generate-platform-variants" }>,
+  config: WorkerConfig,
 ) {
   const contentItem = await repository.getContentItem(payload.contentItemId);
   if (!contentItem) {
     throw new Error("Content item not found for platform variant generation.");
   }
 
+  const generated = await generateTextWithOpenAI(config, {
+    instructions:
+      "Create short platform-specific social copy guidance. Cover Instagram, TikTok, Facebook, and X when relevant. Keep it tactical and under 130 words.",
+    input: [
+      `Title: ${contentItem.title}`,
+      `Campaign: ${contentItem.campaign}`,
+      `Brief: ${contentItem.brief}`,
+      `Caption anchor: ${contentItem.primaryCaption}`,
+    ].join("\n"),
+  });
+
   await repository.createAiSuggestion({
     userId: payload.userId,
     contentItemId: payload.contentItemId,
     type: "content_idea",
     title: `Platform variants ready for ${contentItem.title}`,
-    body: "Create an Instagram version focused on visual pacing, then a shorter X version that sharpens the hook and CTA.",
-    modelName: "brilhio-heuristic-v1",
+    body: generated,
+    modelName: config.openAiModel ?? "gpt-5-mini",
     sourceJobId: payload.jobRecordId,
   });
 
@@ -72,6 +99,7 @@ async function buildPlatformVariants(
 async function buildCalendarHint(
   repository: Repository,
   payload: Extract<JobPayload, { type: "build-calendar" }>,
+  config: WorkerConfig,
 ) {
   const dashboard = await repository.getDashboard(payload.userId);
   if (!dashboard) {
@@ -80,18 +108,81 @@ async function buildCalendarHint(
 
   const nextSuggestionTarget = dashboard.contentItems[0];
   if (nextSuggestionTarget) {
+    const strategy = await repository.getUserStrategyProfile(payload.userId);
+    const generated = await generateTextWithOpenAI(config, {
+      instructions:
+        "Recommend a weekly publishing pattern for a creator social calendar. Mention timing, content mix, and platform focus in under 120 words.",
+      input: [
+        `Identity: ${strategy.identityType ?? "Unknown"}`,
+        `Goals: ${strategy.goals.join(", ") || "None provided"}`,
+        `Voice: ${strategy.voiceAttributes.join(", ") || "None provided"}`,
+        `Existing scheduled posts: ${dashboard.scheduledPosts.length}`,
+        `Content queue: ${dashboard.contentItems.map((item) => item.title).join(", ")}`,
+      ].join("\n"),
+    });
+
     await repository.createAiSuggestion({
       userId: payload.userId,
       contentItemId: nextSuggestionTarget.id,
       type: "publish_window",
       title: "Weekly calendar refreshed",
-      body: "Cluster educational content earlier in the week and reserve launch-style posts for late-morning Instagram and Facebook windows.",
-      modelName: "brilhio-heuristic-v1",
+      body: generated,
+      modelName: config.openAiModel ?? "gpt-5-mini",
       sourceJobId: payload.jobRecordId,
     });
   }
 
   return "Rebuilt calendar suggestions for the user.";
+}
+
+async function generateTextWithOpenAI(
+  config: WorkerConfig,
+  request: { instructions: string; input: string },
+) {
+  if (!config.openAiApiKey) {
+    throw new Error("OPENAI_API_KEY is required for AI job processing.");
+  }
+
+  const model = config.openAiModel ?? "gpt-5-mini";
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      instructions: request.instructions,
+      input: request.input,
+      max_output_tokens: 350,
+    }),
+  });
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      typeof json?.error?.message === "string"
+        ? json.error.message
+        : "OpenAI response failed.";
+    throw new Error(message);
+  }
+
+  if (typeof json.output_text === "string" && json.output_text.trim()) {
+    return json.output_text.trim();
+  }
+
+  const text = json.output
+    ?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content ?? [])
+    .map((content: { text?: string }) => content.text)
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+
+  if (!text) {
+    throw new Error("OpenAI response did not include text output.");
+  }
+
+  return text;
 }
 
 async function publishScheduledPost(
@@ -167,11 +258,11 @@ export async function processJob(
 ) {
   switch (payload.type) {
     case "generate-caption":
-      return buildCaptionSuggestion(repository, payload);
+      return buildCaptionSuggestion(repository, payload, config);
     case "generate-platform-variants":
-      return buildPlatformVariants(repository, payload);
+      return buildPlatformVariants(repository, payload, config);
     case "build-calendar":
-      return buildCalendarHint(repository, payload);
+      return buildCalendarHint(repository, payload, config);
     case "publish-scheduled-post":
       return publishScheduledPost(repository, payload, config);
     case "refresh-social-token":

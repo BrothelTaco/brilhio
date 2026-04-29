@@ -24,6 +24,10 @@ export const demoProfile: UserProfile = {
   email: demoUser.email ?? "demo@brilhio.local",
   timezone: "America/Denver",
   stripeCustomerId: null,
+  stripeSubscriptionId: null,
+  subscriptionStatus: "active",
+  subscriptionCurrentPeriodEnd: null,
+  subscriptionCancelAtPeriodEnd: false,
   createdAt: "2026-04-17T08:00:00.000Z",
 };
 

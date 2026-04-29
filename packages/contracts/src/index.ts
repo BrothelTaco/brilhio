@@ -90,9 +90,25 @@ export const userProfileSchema = z.object({
   email: z.string(),
   timezone: z.string().default("UTC"),
   stripeCustomerId: z.string().nullable(),
+  stripeSubscriptionId: z.string().nullable(),
+  subscriptionStatus: z.string().nullable(),
+  subscriptionCurrentPeriodEnd: z.string().nullable(),
+  subscriptionCancelAtPeriodEnd: z.boolean().default(false),
   createdAt: z.string(),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
+
+export const userStrategyProfileSchema = z.object({
+  userId: entityIdSchema,
+  identityType: z.string().nullable(),
+  goals: z.array(z.string()),
+  voiceAttributes: z.array(z.string()),
+  platformPriorities: z.record(z.string(), z.string()),
+  contentPillars: z.array(z.string()),
+  audienceNotes: z.string().nullable(),
+  updatedAt: z.string().min(1),
+});
+export type UserStrategyProfile = z.infer<typeof userStrategyProfileSchema>;
 
 export const authSessionSchema = z.object({
   user: authenticatedUserSchema,
@@ -285,6 +301,18 @@ export const updateUserTimezoneInputSchema = z.object({
   timezone: z.string().min(1),
 });
 export type UpdateUserTimezoneInput = z.infer<typeof updateUserTimezoneInputSchema>;
+
+export const updateUserStrategyProfileInputSchema = z.object({
+  identityType: z.string().min(1).nullable().default(null),
+  goals: z.array(z.string().min(1)).default([]),
+  voiceAttributes: z.array(z.string().min(1)).default([]),
+  platformPriorities: z.record(z.string(), z.string()).default({}),
+  contentPillars: z.array(z.string().min(1)).default([]),
+  audienceNotes: z.string().nullable().default(null),
+});
+export type UpdateUserStrategyProfileInput = z.infer<
+  typeof updateUserStrategyProfileInputSchema
+>;
 
 export const queueJobInputSchema = z.object({
   userId: entityIdSchema,
