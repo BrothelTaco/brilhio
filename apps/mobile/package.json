@@ -8,6 +8,9 @@
     "build": "corepack pnpm typecheck",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@brilhio/api-client": "workspace:*",

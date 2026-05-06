@@ -7,6 +7,7 @@ import type {
   CreateApprovalTaskInput,
   CreateContentItemInput,
   CreateMediaAssetInput,
+  CreateRecommendedSlotInput,
   DashboardSnapshot,
   JobPayload,
   JobRecord,
@@ -14,6 +15,7 @@ import type {
   MediaAsset,
   Platform,
   QueueJobInput,
+  RecommendedSlot,
   ScheduledPost,
   SchedulePostInput,
   SocialAccount,
@@ -71,13 +73,18 @@ export interface Repository {
   getUserTimezone(userId: string): Promise<string>;
   getUserStrategyProfile(userId: string): Promise<UserStrategyProfile>;
   updateUserStrategyProfile(userId: string, input: UpdateUserStrategyProfileInput): Promise<UserStrategyProfile>;
+  setBrandBrief(userId: string, brandBrief: string): Promise<UserStrategyProfile>;
   ensureStripeCustomerId(userId: string, email: string | null, stripeCustomerId: string): Promise<void>;
   updateBillingProfileByUserId(userId: string, update: BillingProfileUpdate): Promise<void>;
   updateBillingProfileByStripeCustomerId(stripeCustomerId: string, update: BillingProfileUpdate): Promise<void>;
+  hasProcessedStripeWebhookEvent(stripeEventId: string): Promise<boolean>;
+  recordProcessedStripeWebhookEvent(stripeEventId: string, eventType: string): Promise<void>;
   userHasActiveSubscription(userId: string): Promise<boolean>;
   listOverdueJobRecords(): Promise<JobRecord[]>;
   getDashboard(userId: string): Promise<DashboardSnapshot>;
   listMediaAssets(userId: string): Promise<MediaAsset[]>;
+  getMediaAssetsByIds(ids: string[]): Promise<MediaAsset[]>;
+  createSignedMediaUrl(storagePath: string, expiresInSeconds: number): Promise<string | null>;
   createMediaAsset(input: CreateMediaAssetInput): Promise<MediaAsset>;
   createContentItem(input: CreateContentItemInput): Promise<import("@brilhio/contracts").ContentItem>;
   createApprovalTask(input: CreateApprovalTaskInput): Promise<ApprovalTask>;
@@ -96,6 +103,12 @@ export interface Repository {
   upsertSocialAccountConnection(input: UpsertSocialAccountConnectionInput): Promise<SocialAccount>;
   markScheduledPostPublished(scheduledPostId: string, providerPostId: string): Promise<ScheduledPost | null>;
   markScheduledPostFailed(scheduledPostId: string, errorMessage: string): Promise<ScheduledPost | null>;
+  listRecommendedSlots(userId: string): Promise<RecommendedSlot[]>;
+  getRecommendedSlot(slotId: string): Promise<RecommendedSlot | null>;
+  createRecommendedSlot(input: CreateRecommendedSlotInput): Promise<RecommendedSlot>;
+  dismissRecommendedSlot(userId: string, slotId: string): Promise<RecommendedSlot | null>;
+  markRecommendedSlotFilled(userId: string, slotId: string, scheduledPostId: string): Promise<RecommendedSlot | null>;
+  deleteOpenRecommendedSlots(userId: string): Promise<void>;
 }
 
 export type RuntimeQueueJob = {

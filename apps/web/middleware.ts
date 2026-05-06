@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
+import { hasActiveSubscriptionStatus } from "@brilhio/contracts";
 import { type NextRequest, NextResponse } from "next/server";
+import { DEV_AUTH_COOKIE, isDevAuthEnabled } from "./lib/dev-auth";
 
 const PROTECTED_PATHS = ["/schedule", "/dashboard", "/account", "/accounts", "/onboarding", "/content", "/strategy", "/billing"] as const;
 const BILLING_EXEMPT_PATHS = ["/billing", "/onboarding"] as const;
@@ -29,6 +31,13 @@ function routeRequiresSubscription(pathname: string) {
 
 export async function middleware(request: NextRequest) {
   if (!routeRequiresAuth(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
+  if (
+    isDevAuthEnabled() &&
+    request.cookies.get(DEV_AUTH_COOKIE)?.value === "1"
+  ) {
     return NextResponse.next();
   }
 
@@ -66,14 +75,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (routeRequiresSubscription(request.nextUrl.pathname)) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("subscription_status")
       .eq("user_id", user.id)
       .maybeSingle();
-    const hasAccess =
-      data?.subscription_status === "active" ||
-      data?.subscription_status === "trialing";
+    if (error) {
+      return NextResponse.json(
+        { error: "Subscription check failed." },
+        { status: 500 },
+      );
+    }
+
+    const hasAccess = hasActiveSubscriptionStatus(data?.subscription_status);
 
     if (!hasAccess) {
       const redirectUrl = request.nextUrl.clone();

@@ -9,20 +9,23 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "concurrently \"corepack pnpm dev:web\" \"corepack pnpm dev:marketing\" \"corepack pnpm dev:api\" \"corepack pnpm dev:worker\"",
-    "dev:web": "corepack pnpm --filter @brilhio/web dev",
-    "dev:marketing": "corepack pnpm --filter @brilhio/marketing dev",
-    "dev:mobile": "corepack pnpm --filter @brilhio/mobile dev",
-    "dev:api": "corepack pnpm --filter @brilhio/api dev",
-    "dev:worker": "corepack pnpm --filter @brilhio/worker dev",
-    "build": "corepack pnpm -r build",
-    "typecheck": "corepack pnpm -r typecheck"
+    "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:marketing\" \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "dev:web": "dotenv -e .env -- pnpm --filter @brilhio/web dev",
+    "dev:marketing": "dotenv -e .env -- pnpm --filter @brilhio/marketing dev",
+    "dev:mobile": "dotenv -e .env -- pnpm --filter @brilhio/mobile dev",
+    "dev:api": "dotenv -e .env -- pnpm --filter @brilhio/api dev",
+    "dev:worker": "dotenv -e .env -- pnpm --filter @brilhio/worker dev",
+    "build": "dotenv -e .env -- pnpm -r build",
+    "typecheck": "dotenv -e .env -- pnpm -r typecheck",
+    "test": "dotenv -e .env -- pnpm --filter @brilhio/api test",
+    "test:stripe:e2e": "dotenv -e .env -- pnpm --filter @brilhio/api test:stripe:e2e"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "concurrently": "^9.1.2",
+    "dotenv-cli": "^11.0.0",
     "typescript": "^5.8.3"
   }
 }

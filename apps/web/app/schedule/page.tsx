@@ -1,7 +1,7 @@
 import { ProductShell } from "../ui/product-shell";
 import { WeeklyCalendar } from "../ui/weekly-calendar";
 import { createClient } from "../../lib/supabase/server";
-import type { ScheduledPost } from "@brilhio/contracts";
+import type { RecommendedSlot, ScheduledPost } from "@brilhio/contracts";
 
 function mapScheduledPost(row: {
   id: string;
@@ -29,23 +29,57 @@ function mapScheduledPost(row: {
   };
 }
 
+function mapRecommendedSlot(row: {
+  id: string;
+  user_id: string;
+  suggested_for: string;
+  platform: RecommendedSlot["platform"];
+  content_type_hint: string;
+  rationale: string | null;
+  status: RecommendedSlot["status"];
+  scheduled_post_id: string | null;
+  created_at: string;
+}): RecommendedSlot {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    suggestedFor: row.suggested_for,
+    platform: row.platform,
+    contentTypeHint: row.content_type_hint,
+    rationale: row.rationale,
+    status: row.status,
+    scheduledPostId: row.scheduled_post_id,
+    createdAt: row.created_at,
+  };
+}
+
 export default async function SchedulePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let posts: ScheduledPost[] = [];
+  let recommendedSlots: RecommendedSlot[] = [];
 
   if (user) {
-    const { data } = await supabase
-      .from("scheduled_posts")
-      .select("id, user_id, content_item_id, platform, scheduled_for, status, platform_caption, publish_window_label, provider_post_id, error_message")
-      .eq("user_id", user.id)
-      .order("scheduled_for", { ascending: true });
-    posts = (data ?? []).map(mapScheduledPost);
+    const [postsResult, slotsResult] = await Promise.all([
+      supabase
+        .from("scheduled_posts")
+        .select("id, user_id, content_item_id, platform, scheduled_for, status, platform_caption, publish_window_label, provider_post_id, error_message")
+        .eq("user_id", user.id)
+        .order("scheduled_for", { ascending: true }),
+      supabase
+        .from("recommended_slots")
+        .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+        .eq("user_id", user.id)
+        .eq("status", "open")
+        .order("suggested_for", { ascending: true }),
+    ]);
+    posts = (postsResult.data ?? []).map(mapScheduledPost);
+    recommendedSlots = (slotsResult.data ?? []).map(mapRecommendedSlot);
   }
 
   return (
     <ProductShell activePath="/schedule">
-      <WeeklyCalendar scheduledPosts={posts} />
+      <WeeklyCalendar scheduledPosts={posts} recommendedSlots={recommendedSlots} />
     </ProductShell>
   );
 }

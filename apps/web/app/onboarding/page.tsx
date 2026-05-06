@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api-client";
 import {
   identityTypes,
+  industries,
   onboardingPreview,
   onboardingSteps,
   platformPriorities,
@@ -14,6 +16,7 @@ import {
 
 type StrategyProfile = {
   identityType: string | null;
+  industry: string | null;
   goals: string[];
   voiceAttributes: string[];
   platformPriorities: Record<string, string>;
@@ -23,6 +26,7 @@ type StrategyProfile = {
 
 const DEFAULT_PROFILE: StrategyProfile = {
   identityType: "Band",
+  industry: null,
   goals: ["Grow fandom", "Sell tickets"],
   voiceAttributes: ["Warm", "Direct", "A little witty"],
   platformPriorities: Object.fromEntries(
@@ -39,8 +43,10 @@ function toggle(values: string[], value: string) {
 }
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<StrategyProfile>(DEFAULT_PROFILE);
   const [status, setStatus] = useState<"loading" | "idle" | "saving" | "saved" | "error">("loading");
+  const [continuing, setContinuing] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -51,6 +57,7 @@ export default function OnboardingPage() {
         if (json?.data) {
           setProfile({
             identityType: json.data.identityType ?? DEFAULT_PROFILE.identityType,
+            industry: json.data.industry ?? DEFAULT_PROFILE.industry,
             goals: json.data.goals.length ? json.data.goals : DEFAULT_PROFILE.goals,
             voiceAttributes: json.data.voiceAttributes.length
               ? json.data.voiceAttributes
@@ -92,6 +99,22 @@ export default function OnboardingPage() {
     void save(nextProfile);
   }
 
+  async function handleContinue() {
+    setContinuing(true);
+    // Flush any unsaved state (audienceNotes only saves on blur).
+    try {
+      await apiFetch("/api/me/strategy-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      await apiFetch("/api/me/strategy-profile/finalize", { method: "POST" });
+    } catch {
+      // Best-effort: brand-brief generation is async and recoverable. Still navigate.
+    }
+    router.push("/dashboard");
+  }
+
   return (
     <main className="workspace-page">
       <div className="brilhio-shell onboarding-page">
@@ -109,9 +132,14 @@ export default function OnboardingPage() {
             <Link href="/account" className="brilhio-button brilhio-button-secondary">
               Account profile
             </Link>
-            <Link href="/dashboard" className="brilhio-button brilhio-button-primary">
-              Continue
-            </Link>
+            <button
+              type="button"
+              className="brilhio-button brilhio-button-primary"
+              onClick={handleContinue}
+              disabled={continuing}
+            >
+              {continuing ? "Setting up…" : "Continue"}
+            </button>
           </div>
         </header>
 
@@ -156,6 +184,29 @@ export default function OnboardingPage() {
                     onClick={() => update({ ...profile, identityType: type })}
                   >
                     {type}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="brilhio-card surface-card">
+              <div className="surface-head compact-head">
+                <div>
+                  <p className="brilhio-eyebrow">Industry</p>
+                  <h2>What field do you operate in?</h2>
+                </div>
+              </div>
+
+              <div className="chip-row">
+                {industries.map((industry) => (
+                  <button
+                    key={industry}
+                    className={`capability-chip ${
+                      profile.industry === industry ? "capability-chip-selected" : ""
+                    }`}
+                    onClick={() => update({ ...profile, industry })}
+                  >
+                    {industry}
                   </button>
                 ))}
               </div>

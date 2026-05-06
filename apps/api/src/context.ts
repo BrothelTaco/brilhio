@@ -15,6 +15,7 @@ export type AppConfig = {
   allowDevAuth: boolean;
   devUserId: string | null;
   devUserEmail: string | null;
+  useMemoryRepository: boolean;
   supabaseUrl: string | null;
   supabaseServiceRoleKey: string | null;
   encryptionSecret: string;
@@ -25,6 +26,9 @@ export type AppConfig = {
   stripePriceId: string | null;
   stripeWebhookSecret: string | null;
   requireSubscription: boolean;
+  subscriptionEnforcementConfirmed: boolean;
+  alertWebhookUrl: string | null;
+  supabaseAuthRedirectUrls: string[];
 };
 
 export type AppContext = {
@@ -38,9 +42,10 @@ export function readAppConfig(env = process.env): AppConfig {
   return {
     port: Number(env.PORT ?? 4000),
     host: env.HOST ?? "0.0.0.0",
-    allowDevAuth: env.ALLOW_DEV_AUTH !== "false",
+    allowDevAuth: env.ALLOW_DEV_AUTH === "true",
     devUserId: env.BRILHIO_DEV_USER_ID ?? null,
     devUserEmail: env.BRILHIO_DEV_USER_EMAIL ?? null,
+    useMemoryRepository: env.USE_MEMORY_REPOSITORY === "true",
     supabaseUrl: env.SUPABASE_URL ?? null,
     supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY ?? null,
     encryptionSecret:
@@ -54,19 +59,27 @@ export function readAppConfig(env = process.env): AppConfig {
     stripePriceId: env.STRIPE_PRICE_ID ?? null,
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
     requireSubscription: env.REQUIRE_SUBSCRIPTION === "true",
+    subscriptionEnforcementConfirmed:
+      env.SUBSCRIPTION_ENFORCEMENT_CONFIRMED === "true",
+    alertWebhookUrl: env.ALERT_WEBHOOK_URL ?? null,
+    supabaseAuthRedirectUrls: (env.SUPABASE_AUTH_REDIRECT_URLS ?? "")
+      .split(",")
+      .map((url) => url.trim())
+      .filter(Boolean),
   };
 }
 
 export function createAppContext(config = readAppConfig()): AppContext {
   const hasSupabase = Boolean(config.supabaseUrl && config.supabaseServiceRoleKey);
+  const useMemoryRepository = config.useMemoryRepository || !hasSupabase;
 
-  const repository = hasSupabase
-    ? SupabaseRepository.create({
+  const repository = useMemoryRepository
+    ? new MemoryRepository()
+    : SupabaseRepository.create({
         supabaseUrl: config.supabaseUrl!,
         serviceRoleKey: config.supabaseServiceRoleKey!,
         encryptionSecret: config.encryptionSecret,
-      })
-    : new MemoryRepository();
+      });
 
   const supabaseAdmin = hasSupabase
     ? createClient(config.supabaseUrl!, config.supabaseServiceRoleKey!, {
@@ -95,6 +108,8 @@ export function buildRuntimeJobPayload(record: JobRecord, input: QueueJobInput):
       return { type: "refresh-social-token", jobRecordId: record.id, userId: input.userId, socialAccountId: input.targetId };
     case "ingest-provider-webhook":
       return { type: "ingest-provider-webhook", jobRecordId: record.id, userId: input.userId, providerWebhookId: input.targetId };
+    case "regenerate-brand-brief":
+      return { type: "regenerate-brand-brief", jobRecordId: record.id, userId: input.userId };
     default: {
       const neverReached: never = input.type;
       return neverReached;
@@ -118,4 +133,30 @@ export async function persistAndEnqueueJob(context: AppContext, input: QueueJobI
     (await context.repository.attachBullmqJobId(jobRecord.id, String(bullJob.id))) ?? jobRecord;
 
   return { jobRecord: updatedRecord, enqueued: true };
+}
+
+export async function sendOperationalAlert(
+  context: AppContext,
+  input: {
+    severity: "warning" | "error";
+    event: string;
+    message: string;
+    details?: Record<string, unknown>;
+  },
+) {
+  if (!context.config.alertWebhookUrl) return;
+
+  try {
+    await fetch(context.config.alertWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service: "brilhio-api",
+        at: new Date().toISOString(),
+        ...input,
+      }),
+    });
+  } catch {
+    // Logging may be unavailable here; callers already log the source error.
+  }
 }

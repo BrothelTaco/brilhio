@@ -64,6 +64,7 @@ pnpm install
 pnpm dev
 pnpm dev:mobile
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -77,10 +78,18 @@ Copy `.env.example` and fill the production values before deployment:
 - `REDIS_URL` for BullMQ workers
 - `OPENAI_API_KEY` and optional `OPENAI_MODEL` for AI worker jobs
 - `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, and `WEB_APP_URL` for signup Checkout
-- `REQUIRE_SUBSCRIPTION=true` in production once Stripe webhooks are configured
+- `SUPABASE_AUTH_REDIRECT_URLS` and `EXPO_PUBLIC_MOBILE_AUTH_CALLBACK_URL` for web and mobile auth callbacks
+- `ALLOW_DEV_AUTH=false` in production
+- `USE_MEMORY_REPOSITORY=true` for local UI work with demo data instead of Supabase-backed tables
+- `REQUIRE_SUBSCRIPTION=true` only after Stripe webhooks update profiles successfully, then set `SUBSCRIPTION_ENFORCEMENT_CONFIRMED=true`
+- `ALERT_WEBHOOK_URL` for API operational alerts
 - `NEXT_PUBLIC_API_BASE_URL` for the web app API origin
 
 Apply the SQL in `supabase/migrations` to the target Supabase project before pointing production traffic at it.
+The API readiness check is available at `/health/readiness`.
+
+Auth provider setup lives in `docs/auth-operations.md`.
+Stripe webhook setup and local testing steps live in `docs/stripe-operations.md`.
 
 ## Product direction encoded in this scaffold
 

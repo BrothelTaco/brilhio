@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "corepack pnpm typecheck",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:stripe:e2e": "node --import tsx --test \"src/**/*.e2e.test.ts\""
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",

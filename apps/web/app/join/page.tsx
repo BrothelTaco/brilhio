@@ -23,6 +23,9 @@ export default function JoinPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/billing`,
+      },
     });
 
     if (signUpError) {
@@ -60,6 +63,22 @@ export default function JoinPage() {
     setLoading(false);
     router.push("/onboarding");
     router.refresh();
+  }
+
+  async function handleOAuthSignUp() {
+    setError("");
+    setLoading(true);
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/billing`,
+      },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setLoading(false);
+    }
   }
 
   return (
@@ -124,6 +143,14 @@ export default function JoinPage() {
                   Already have an account?
                 </Link>
               </div>
+              <button
+                type="button"
+                className="brilhio-button brilhio-button-secondary"
+                onClick={handleOAuthSignUp}
+                disabled={loading}
+              >
+                Continue with Google
+              </button>
             </form>
           </section>
         </div>

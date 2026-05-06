@@ -57,6 +57,7 @@ export const jobTypeSchema = z.enum([
   "publish-scheduled-post",
   "refresh-social-token",
   "ingest-provider-webhook",
+  "regenerate-brand-brief",
 ]);
 export type JobType = z.infer<typeof jobTypeSchema>;
 
@@ -74,6 +75,7 @@ export const jobTargetTableSchema = z.enum([
   "scheduled_posts",
   "social_accounts",
   "provider_webhooks",
+  "user_strategy_profiles",
 ]);
 export type JobTargetTable = z.infer<typeof jobTargetTableSchema>;
 
@@ -98,14 +100,24 @@ export const userProfileSchema = z.object({
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
+export const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"] as const;
+export type ActiveSubscriptionStatus = (typeof ACTIVE_SUBSCRIPTION_STATUSES)[number];
+
+export function hasActiveSubscriptionStatus(status: string | null | undefined) {
+  return ACTIVE_SUBSCRIPTION_STATUSES.includes(status as ActiveSubscriptionStatus);
+}
+
 export const userStrategyProfileSchema = z.object({
   userId: entityIdSchema,
   identityType: z.string().nullable(),
+  industry: z.string().nullable(),
   goals: z.array(z.string()),
   voiceAttributes: z.array(z.string()),
   platformPriorities: z.record(z.string(), z.string()),
   contentPillars: z.array(z.string()),
   audienceNotes: z.string().nullable(),
+  brandBrief: z.string().nullable(),
+  brandBriefGeneratedAt: z.string().nullable(),
   updatedAt: z.string().min(1),
 });
 export type UserStrategyProfile = z.infer<typeof userStrategyProfileSchema>;
@@ -168,6 +180,43 @@ export const scheduledPostSchema = z.object({
   errorMessage: z.string().nullable().optional(),
 });
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>;
+
+export const recommendedSlotStatusSchema = z.enum([
+  "open",
+  "filled",
+  "dismissed",
+]);
+export type RecommendedSlotStatus = z.infer<typeof recommendedSlotStatusSchema>;
+
+export const recommendedSlotSchema = z.object({
+  id: entityIdSchema,
+  userId: entityIdSchema,
+  suggestedFor: z.string().min(1),
+  platform: platformSchema,
+  contentTypeHint: z.string().min(1),
+  rationale: z.string().nullable(),
+  status: recommendedSlotStatusSchema,
+  scheduledPostId: entityIdSchema.nullable(),
+  createdAt: z.string().min(1),
+});
+export type RecommendedSlot = z.infer<typeof recommendedSlotSchema>;
+
+export const createRecommendedSlotInputSchema = z.object({
+  userId: entityIdSchema,
+  suggestedFor: z.string().min(1),
+  platform: platformSchema,
+  contentTypeHint: z.string().min(1),
+  rationale: z.string().nullable().default(null),
+});
+export type CreateRecommendedSlotInput = z.infer<
+  typeof createRecommendedSlotInputSchema
+>;
+
+export const scheduleFromSlotInputSchema = z.object({
+  mediaAssetIds: z.array(entityIdSchema).min(1),
+  platformCaption: z.string().min(1),
+});
+export type ScheduleFromSlotInput = z.infer<typeof scheduleFromSlotInputSchema>;
 
 export const aiSuggestionSchema = z.object({
   id: entityIdSchema,
@@ -304,6 +353,7 @@ export type UpdateUserTimezoneInput = z.infer<typeof updateUserTimezoneInputSche
 
 export const updateUserStrategyProfileInputSchema = z.object({
   identityType: z.string().min(1).nullable().default(null),
+  industry: z.string().min(1).nullable().default(null),
   goals: z.array(z.string().min(1)).default([]),
   voiceAttributes: z.array(z.string().min(1)).default([]),
   platformPriorities: z.record(z.string(), z.string()).default({}),
@@ -400,6 +450,13 @@ export type IngestProviderWebhookJobPayload = z.infer<
   typeof ingestProviderWebhookJobPayloadSchema
 >;
 
+export const regenerateBrandBriefJobPayloadSchema = baseJobPayloadSchema.extend({
+  type: z.literal("regenerate-brand-brief"),
+});
+export type RegenerateBrandBriefJobPayload = z.infer<
+  typeof regenerateBrandBriefJobPayloadSchema
+>;
+
 export const jobPayloadSchema = z.discriminatedUnion("type", [
   buildCalendarJobPayloadSchema,
   generateCaptionJobPayloadSchema,
@@ -407,6 +464,7 @@ export const jobPayloadSchema = z.discriminatedUnion("type", [
   publishScheduledPostJobPayloadSchema,
   refreshSocialTokenJobPayloadSchema,
   ingestProviderWebhookJobPayloadSchema,
+  regenerateBrandBriefJobPayloadSchema,
 ]);
 export type JobPayload = z.infer<typeof jobPayloadSchema>;
 

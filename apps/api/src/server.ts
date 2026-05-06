@@ -8,6 +8,7 @@ import { dashboardRoutes } from "./routes/dashboard";
 import { healthRoutes } from "./routes/health";
 import { providerRoutes } from "./routes/providers";
 import { sessionRoutes } from "./routes/session";
+import { slotRoutes } from "./routes/slots";
 
 export function createServer() {
   const config = readAppConfig();
@@ -63,6 +64,7 @@ export function createServer() {
   void app.register(dashboardRoutes, { prefix: "/api" });
   void app.register(contentRoutes, { prefix: "/api" });
   void app.register(providerRoutes, { prefix: "/api" });
+  void app.register(slotRoutes, { prefix: "/api" });
 
   return app;
 }

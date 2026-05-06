@@ -3,6 +3,8 @@ import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
+  AppState,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +21,11 @@ import { supabase } from "./lib/supabase";
 const mobileSupabase = supabase;
 const devUserId = process.env.EXPO_PUBLIC_BRILHIO_DEV_USER_ID ?? null;
 const devUserEmail = process.env.EXPO_PUBLIC_BRILHIO_DEV_USER_EMAIL ?? null;
+const mobileBillingSuccessUrl = "brilhio://billing?checkout=success&session_id={CHECKOUT_SESSION_ID}";
+const mobileBillingCancelUrl = "brilhio://billing?checkout=cancelled";
+const mobileBillingPortalReturnUrl = "brilhio://billing?portal=returned";
+const mobileAuthCallbackUrl =
+  process.env.EXPO_PUBLIC_MOBILE_AUTH_CALLBACK_URL ?? "brilhio://auth/callback";
 
 const api = createBrilhioApiClient({
   baseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:4000",
@@ -36,8 +43,11 @@ export default function App() {
   const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [authBusy, setAuthBusy] = useState(false);
+  const [billingBusy, setBillingBusy] = useState<"checkout" | "portal" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordRecoveryReady, setPasswordRecoveryReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -133,6 +143,85 @@ export default function App() {
     };
   }, [supportsDevAuth]);
 
+  useEffect(() => {
+    async function handleIncomingUrl(url: string | null) {
+      if (!url) return;
+
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "brilhio:") {
+          return;
+        }
+
+        if (parsed.hostname === "auth" && parsed.pathname === "/callback") {
+          if (!mobileSupabase) {
+            return;
+          }
+
+          const code = parsed.searchParams.get("code");
+          const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+
+          if (code) {
+            const { error: exchangeError } =
+              await mobileSupabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              setError(exchangeError.message);
+              return;
+            }
+          } else if (accessToken && refreshToken) {
+            const { error: sessionError } = await mobileSupabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (sessionError) {
+              setError(sessionError.message);
+              return;
+            }
+          }
+
+          setPasswordRecoveryReady(true);
+          setNotice("Choose a new password to finish the reset.");
+          void refresh();
+          return;
+        }
+
+        if (parsed.hostname === "billing") {
+          const checkout = parsed.searchParams.get("checkout");
+          const portal = parsed.searchParams.get("portal");
+          if (checkout === "success") {
+            setNotice("Checkout complete. Refreshing billing status...");
+          } else if (checkout === "cancelled") {
+            setNotice("Checkout cancelled.");
+          } else if (portal === "returned") {
+            setNotice("Billing portal closed. Refreshing billing status...");
+          }
+
+          void refresh();
+        }
+      } catch {
+        // Ignore non-URL app activation payloads.
+      }
+    }
+
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && (mobileSupabase || supportsDevAuth)) {
+        void refresh();
+      }
+    });
+    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
+      void handleIncomingUrl(url);
+    });
+
+    void Linking.getInitialURL().then(handleIncomingUrl);
+
+    return () => {
+      appStateSubscription.remove();
+      linkingSubscription.remove();
+    };
+  }, []);
+
   async function handleSignIn() {
     if (!mobileSupabase) {
       return;
@@ -182,6 +271,51 @@ export default function App() {
     setAuthBusy(false);
   }
 
+  async function handlePasswordReset() {
+    if (!mobileSupabase) {
+      return;
+    }
+
+    setAuthBusy(true);
+    setError(null);
+
+    const { error: resetError } = await mobileSupabase.auth.resetPasswordForEmail(email, {
+      redirectTo: mobileAuthCallbackUrl,
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+    } else {
+      setNotice("Password reset email sent.");
+    }
+
+    setAuthBusy(false);
+  }
+
+  async function handleUpdatePassword() {
+    if (!mobileSupabase) {
+      return;
+    }
+
+    setAuthBusy(true);
+    setError(null);
+
+    const { error: updateError } = await mobileSupabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setNewPassword("");
+      setPasswordRecoveryReady(false);
+      setNotice("Password updated.");
+      void refresh();
+    }
+
+    setAuthBusy(false);
+  }
+
   async function handleSignOut() {
     if (!mobileSupabase) {
       return;
@@ -189,6 +323,33 @@ export default function App() {
 
     await mobileSupabase.auth.signOut();
     setNotice("Signed out.");
+  }
+
+  async function openBillingUrl(kind: "checkout" | "portal") {
+    setBillingBusy(kind);
+    setError(null);
+
+    try {
+      const response =
+        kind === "checkout"
+          ? await api.createCheckoutSession({
+              successUrl: mobileBillingSuccessUrl,
+              cancelUrl: mobileBillingCancelUrl,
+            })
+          : await api.createBillingPortalSession({
+              returnUrl: mobileBillingPortalReturnUrl,
+            });
+
+      await Linking.openURL(response.data.url);
+    } catch (billingError) {
+      setError(
+        billingError instanceof Error
+          ? billingError.message
+          : "Could not open billing.",
+      );
+    } finally {
+      setBillingBusy(null);
+    }
   }
 
   if (loading) {
@@ -251,8 +412,38 @@ export default function App() {
               >
                 <Text style={styles.secondaryButtonLabel}>Create account</Text>
               </Pressable>
+              <Pressable
+                style={[styles.button, styles.secondaryButton]}
+                onPress={() => {
+                  void handlePasswordReset();
+                }}
+                disabled={authBusy}
+              >
+                <Text style={styles.secondaryButtonLabel}>Reset password</Text>
+              </Pressable>
             </View>
+            {passwordRecoveryReady ? (
+              <>
+                <TextInput
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="New password"
+                  secureTextEntry
+                  style={styles.input}
+                />
+                <Pressable
+                  style={[styles.button, styles.primaryButton]}
+                  onPress={() => {
+                    void handleUpdatePassword();
+                  }}
+                  disabled={authBusy}
+                >
+                  <Text style={styles.primaryButtonLabel}>Update password</Text>
+                </Pressable>
+              </>
+            ) : null}
             {error ? <Text style={styles.errorBody}>{error}</Text> : null}
+            {notice ? <Text style={styles.rowBody}>{notice}</Text> : null}
           </View>
         </ScrollView>
       </View>
@@ -308,6 +499,38 @@ export default function App() {
               <Text style={styles.metaLabel}>Platforms</Text>
               <Text style={styles.metaValue}>{dashboard.socialAccounts.length}</Text>
             </View>
+            <View style={styles.metaCard}>
+              <Text style={styles.metaLabel}>Billing</Text>
+              <Text style={styles.metaValue}>
+                {session.profile.subscriptionStatus ?? "inactive"}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.buttonRow}>
+            <Pressable
+              style={[styles.button, styles.primaryButton]}
+              onPress={() => {
+                void openBillingUrl("checkout");
+              }}
+              disabled={Boolean(billingBusy)}
+            >
+              <Text style={styles.primaryButtonLabel}>
+                {billingBusy === "checkout" ? "Opening..." : "Subscribe"}
+              </Text>
+            </Pressable>
+            {session.profile.stripeCustomerId ? (
+              <Pressable
+                style={[styles.button, styles.secondaryButton]}
+                onPress={() => {
+                  void openBillingUrl("portal");
+                }}
+                disabled={Boolean(billingBusy)}
+              >
+                <Text style={styles.secondaryButtonLabel}>
+                  {billingBusy === "portal" ? "Opening..." : "Manage billing"}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
           {mobileSupabase ? (
             <Pressable
@@ -325,6 +548,29 @@ export default function App() {
           <View style={styles.card}>
             <Text style={styles.sectionEyebrow}>Status</Text>
             <Text style={styles.rowBody}>{notice}</Text>
+          </View>
+        ) : null}
+
+        {passwordRecoveryReady ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionEyebrow}>Password reset</Text>
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New password"
+              secureTextEntry
+              style={styles.input}
+            />
+            <Pressable
+              style={[styles.button, styles.primaryButton]}
+              onPress={() => {
+                void handleUpdatePassword();
+              }}
+              disabled={authBusy}
+            >
+              <Text style={styles.primaryButtonLabel}>Update password</Text>
+            </Pressable>
+            {error ? <Text style={styles.errorBody}>{error}</Text> : null}
           </View>
         ) : null}
 
@@ -464,9 +710,11 @@ const styles = StyleSheet.create({
   heroMeta: {
     flexDirection: "row",
     gap: tokens.spacing.md,
+    flexWrap: "wrap",
   },
   metaCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 120,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: tokens.radius.md,
     padding: tokens.spacing.md,

@@ -1,44 +1,120 @@
 :root {
-  --brilhio-ink: #000000;
-  --brilhio-canvas: #080808;
-  --brilhio-panel: #111111;
-  --brilhio-primary: #1e3a5f;
-  --brilhio-primary-dark: #0d1f38;
-  --brilhio-accent: #1e3a5f;
-  --brilhio-mint: #1a2e4a;
-  --brilhio-line: #222222;
-  --brilhio-text: #f0f0f0;
-  --brilhio-muted: #666666;
-  --brilhio-success: #1a8a52;
-  --brilhio-warning: #c9920a;
-  --brilhio-radius-sm: 12px;
-  --brilhio-radius-md: 18px;
-  --brilhio-radius-lg: 28px;
-  --brilhio-shadow: 0 24px 60px rgba(0, 0, 0, 0.70);
-  --brilhio-bg-base: #000000;
-  --brilhio-bg-glow: color-mix(in srgb, #1e3a5f 5%, transparent);
-  --brilhio-bg-glow-2: color-mix(in srgb, #0d1f38 6%, transparent);
-  --brilhio-button-text: #ffffff;
-}
+  --color-pitch-black: #08090a;
+  --color-graphite: #0f1011;
+  --color-deep-slate: #161718;
+  --color-charcoal-grey: #23252a;
+  --color-muted-ash: #323334;
+  --color-gunmetal: #383b3f;
+  --color-porcelain: #f7f8f8;
+  --color-light-steel: #d0d6e0;
+  --color-storm-cloud: #8a8f98;
+  --color-fog-grey: #62666d;
+  --color-alabaster: #e5e5e6;
+  --color-neon-lime: #e4f222;
+  --color-aether-blue: #5e6ad2;
+  --color-forest-green: #008d2c;
+  --color-cyan-spark: #02b8cc;
+  --color-emerald: #27a644;
+  --color-warning-red: #eb5757;
+  --color-deep-violet: #6366f1;
+  --color-amethyst: #8b5cf6;
 
-[data-theme="light"] {
-  --brilhio-ink: #ffffff;
-  --brilhio-canvas: #f5f5f5;
-  --brilhio-panel: #ebebeb;
-  --brilhio-primary: #1e3a5f;
-  --brilhio-primary-dark: #0d1f38;
-  --brilhio-accent: #1e3a5f;
-  --brilhio-mint: #1a2e4a;
-  --brilhio-line: #d0d0d0;
-  --brilhio-text: #0a0a0a;
-  --brilhio-muted: #666666;
-  --brilhio-success: #15803d;
-  --brilhio-warning: #a16207;
-  --brilhio-shadow: 0 24px 60px rgba(0, 0, 0, 0.10);
-  --brilhio-bg-base: #f5f5f5;
-  --brilhio-bg-glow: color-mix(in srgb, #1e3a5f 4%, transparent);
-  --brilhio-bg-glow-2: color-mix(in srgb, #0d1f38 5%, transparent);
-  --brilhio-button-text: #ffffff;
+  --font-inter-variable: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-berkeley-mono: "Berkeley Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --text-caption: 10px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.1px;
+  --text-body: 14px;
+  --leading-body: 1.4;
+  --tracking-body: -0.13px;
+  --text-heading: 24px;
+  --leading-heading: 1.33;
+  --tracking-heading: -0.22px;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 1.2;
+  --tracking-heading-lg: -0.22px;
+  --text-display: 72px;
+  --leading-display: 1;
+  --tracking-display: -0.22px;
+
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-w510: 510;
+  --font-weight-w590: 590;
+
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-36: 36px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-128: 128px;
+
+  --section-gap: 24px;
+  --card-padding: 12px;
+  --element-gap: 8px;
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 22px;
+  --radius-full: 400px;
+  --radius-full-2: 9999px;
+  --radius-pill: 9999px;
+  --radius-tags: 2px;
+  --radius-cards: 6px;
+  --radius-badges: 4px;
+  --radius-inputs: 6px;
+  --radius-buttons: 6px;
+  --radius-default: 6px;
+
+  --shadow-sm: rgba(0, 0, 0, 0.4) 0px 2px 4px 0px;
+  --shadow-md: rgba(0, 0, 0, 0.2) 0px 0px 12px 0px inset;
+  --shadow-subtle: rgb(35, 37, 42) 0px 0px 0px 1px inset;
+  --shadow-subtle-2: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px;
+  --shadow-subtle-3: rgba(0, 0, 0, 0.01) 0px 5px 2px 0px, rgba(0, 0, 0, 0.04) 0px 3px 2px 0px, rgba(0, 0, 0, 0.07) 0px 1px 1px 0px, rgba(0, 0, 0, 0.08) 0px 0px 1px 0px;
+  --shadow-xl: rgba(8, 9, 10, 0.6) 0px 4px 32px 0px;
+  --shadow-subtle-4: rgba(0, 0, 0, 0.1) 0px 0px 0px 2px;
+  --shadow-subtle-5: rgba(0, 0, 0, 0.33) 0px 0px 0px 1px;
+  --shadow-subtle-6: rgba(255, 255, 255, 0.03) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.04) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.6) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 4px 4px 0px;
+
+  --surface-pitch-black-canvas: #08090a;
+  --surface-graphite-card: #0f1011;
+  --surface-deep-slate-elevated-card: #161718;
+  --surface-charcoal-grey-overlay: #23252a;
+
+  --brilhio-ink: var(--color-pitch-black);
+  --brilhio-canvas: var(--color-pitch-black);
+  --brilhio-panel: var(--color-graphite);
+  --brilhio-primary: var(--color-neon-lime);
+  --brilhio-primary-dark: #b7c300;
+  --brilhio-accent: var(--color-neon-lime);
+  --brilhio-mint: var(--color-cyan-spark);
+  --brilhio-line: var(--color-charcoal-grey);
+  --brilhio-text: var(--color-porcelain);
+  --brilhio-muted: var(--color-storm-cloud);
+  --brilhio-success: var(--color-emerald);
+  --brilhio-warning: var(--color-warning-red);
+  --brilhio-radius-sm: var(--radius-sm);
+  --brilhio-radius-md: var(--radius-md);
+  --brilhio-radius-lg: var(--radius-md);
+  --brilhio-shadow: var(--shadow-sm);
+  --brilhio-bg-base: var(--color-pitch-black);
+  --brilhio-bg-glow: rgba(94, 106, 210, 0.08);
+  --brilhio-bg-glow-2: rgba(228, 242, 34, 0.035);
+  --brilhio-button-text: var(--color-pitch-black);
 }
 
 * {
@@ -49,22 +125,27 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-height: 100%;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-pitch-black);
 }
 
 body {
   background:
-    radial-gradient(circle at top left, var(--brilhio-bg-glow), transparent 28%),
-    radial-gradient(circle at top right, var(--brilhio-bg-glow-2), transparent 22%),
-    linear-gradient(180deg, var(--brilhio-bg-base) 0%, var(--brilhio-canvas) 100%);
+    radial-gradient(circle at top left, var(--brilhio-bg-glow), transparent 26rem),
+    radial-gradient(circle at 82% 0, var(--brilhio-bg-glow-2), transparent 22rem),
+    var(--color-pitch-black);
   color: var(--brilhio-text);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-inter-variable);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  font-feature-settings: "cv01", "ss03";
+  text-rendering: geometricPrecision;
 }
 
 a {
@@ -74,8 +155,23 @@ a {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-neon-lime) 35%, transparent);
+  color: var(--color-pitch-black);
 }
 
 .brilhio-shell {
@@ -84,51 +180,76 @@ textarea {
 }
 
 .brilhio-card {
-  background: color-mix(in srgb, var(--brilhio-panel) 92%, white 8%);
-  border: 1px solid color-mix(in srgb, var(--brilhio-line) 84%, white 16%);
-  border-radius: var(--brilhio-radius-lg);
-  box-shadow: var(--brilhio-shadow);
+  background: var(--color-graphite);
+  border: 1px solid var(--color-charcoal-grey);
+  border-radius: var(--radius-cards);
+  box-shadow: var(--shadow-sm);
 }
 
 .brilhio-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  background: color-mix(in srgb, var(--brilhio-accent) 12%, transparent);
-  color: var(--brilhio-accent);
+  gap: var(--spacing-8);
+  border-radius: var(--radius-pill);
+  padding: 3px var(--spacing-8);
+  background: var(--color-gunmetal);
+  color: var(--color-storm-cloud);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-w510);
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
 }
 
 .brilhio-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  border: none;
-  border-radius: 999px;
-  padding: 12px 18px;
-  font-weight: 700;
-  cursor: pointer;
+  gap: var(--spacing-8);
+  min-height: 38px;
+  border-radius: var(--radius-buttons);
+  padding: 9px var(--spacing-16);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: var(--font-weight-w590);
+  line-height: 1.4;
+  letter-spacing: -0.11px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.brilhio-button:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .brilhio-button-primary {
-  color: var(--brilhio-button-text);
-  background: linear-gradient(135deg, var(--brilhio-accent) 0%, var(--brilhio-primary-dark) 100%);
+  color: var(--color-pitch-black);
+  background: var(--color-neon-lime);
+  box-shadow: 0 0 0 1px rgba(228, 242, 34, 0.16), 0 8px 24px rgba(228, 242, 34, 0.08);
+}
+
+.brilhio-button-primary:hover:not(:disabled) {
+  background: #f0ff2e;
+  box-shadow: 0 0 0 1px rgba(228, 242, 34, 0.26), 0 10px 28px rgba(228, 242, 34, 0.12);
 }
 
 .brilhio-button-secondary {
-  color: var(--brilhio-text);
-  background: color-mix(in srgb, var(--brilhio-text) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brilhio-text) 14%, transparent);
+  color: var(--color-light-steel);
+  background: color-mix(in srgb, var(--color-gunmetal) 42%, transparent);
+  border-color: var(--color-charcoal-grey);
+  box-shadow: var(--shadow-subtle-3);
+}
+
+.brilhio-button-secondary:hover:not(:disabled) {
+  color: var(--color-porcelain);
+  background: color-mix(in srgb, var(--color-gunmetal) 70%, transparent);
+  border-color: var(--color-muted-ash);
 }
 
 .brilhio-eyebrow {
+  margin: 0;
+  color: var(--color-storm-cloud);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-w590);
+  line-height: var(--leading-caption);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--brilhio-muted);
 }

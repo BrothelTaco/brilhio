@@ -168,6 +168,20 @@ export class BrilhioApiClient {
       body: JSON.stringify(input),
     });
   }
+
+  createCheckoutSession(input: { successUrl?: string; cancelUrl?: string } = {}) {
+    return this.request<{ id: string; url: string }>("/api/billing/checkout-session", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  createBillingPortalSession(input: { returnUrl?: string } = {}) {
+    return this.request<{ id: string; url: string }>("/api/billing/portal-session", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
 }
 
 export function createBrilhioApiClient(config: ApiClientConfig) {

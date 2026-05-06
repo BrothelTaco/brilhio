@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { hasActiveSubscriptionStatus } from "@brilhio/contracts";
 import type {
   AiSuggestion,
   ApprovalStatus,
@@ -10,11 +11,14 @@ import type {
   CreateApprovalTaskInput,
   CreateContentItemInput,
   CreateMediaAssetInput,
+  CreateRecommendedSlotInput,
   DashboardSnapshot,
   JobRecord,
   MediaAsset,
   Platform,
   QueueJobInput,
+  RecommendedSlot,
+  RecommendedSlotStatus,
   ScheduledPost,
   SchedulePostInput,
   SocialAccount,
@@ -60,11 +64,14 @@ function emptyStrategyProfile(userId: string): UserStrategyProfile {
   return {
     userId,
     identityType: null,
+    industry: null,
     goals: [],
     voiceAttributes: [],
     platformPriorities: {},
     contentPillars: [],
     audienceNotes: null,
+    brandBrief: null,
+    brandBriefGeneratedAt: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -72,21 +79,27 @@ function emptyStrategyProfile(userId: string): UserStrategyProfile {
 function mapStrategyProfile(row: {
   user_id: string;
   identity_type: string | null;
+  industry: string | null;
   goals: string[] | null;
   voice_attributes: string[] | null;
   platform_priorities: Record<string, string> | null;
   content_pillars: string[] | null;
   audience_notes: string | null;
+  brand_brief: string | null;
+  brand_brief_generated_at: string | null;
   updated_at: string;
 }): UserStrategyProfile {
   return {
     userId: row.user_id,
     identityType: row.identity_type,
+    industry: row.industry,
     goals: row.goals ?? [],
     voiceAttributes: row.voice_attributes ?? [],
     platformPriorities: row.platform_priorities ?? {},
     contentPillars: row.content_pillars ?? [],
     audienceNotes: row.audience_notes,
+    brandBrief: row.brand_brief,
+    brandBriefGeneratedAt: row.brand_brief_generated_at,
     updatedAt: row.updated_at,
   };
 }
@@ -232,6 +245,30 @@ function mapApprovalTask(row: {
   };
 }
 
+function mapRecommendedSlot(row: {
+  id: string;
+  user_id: string;
+  suggested_for: string;
+  platform: Platform;
+  content_type_hint: string;
+  rationale: string | null;
+  status: RecommendedSlotStatus;
+  scheduled_post_id: string | null;
+  created_at: string;
+}): RecommendedSlot {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    suggestedFor: row.suggested_for,
+    platform: row.platform,
+    contentTypeHint: row.content_type_hint,
+    rationale: row.rationale,
+    status: row.status,
+    scheduledPostId: row.scheduled_post_id,
+    createdAt: row.created_at,
+  };
+}
+
 function mapJobRecord(row: {
   id: string;
   user_id: string;
@@ -277,8 +314,10 @@ export class MemoryRepository implements Repository {
   private aiSuggestions = structuredClone(demoAiSuggestions);
   private approvalTasks = structuredClone(demoApprovalTasks);
   private jobs = structuredClone(demoJobs);
+  private recommendedSlots: RecommendedSlot[] = [];
   private strategyProfiles = new Map<string, UserStrategyProfile>();
   private billingProfiles = new Map<string, BillingProfileUpdate>();
+  private processedStripeWebhookEvents = new Set<string>();
 
   async getAuthSession(user: AuthenticatedUser): Promise<AuthSession> {
     return {
@@ -312,15 +351,30 @@ export class MemoryRepository implements Repository {
     userId: string,
     input: UpdateUserStrategyProfileInput,
   ): Promise<UserStrategyProfile> {
+    const current = this.strategyProfiles.get(userId);
     const updated: UserStrategyProfile = {
       userId,
       identityType: input.identityType,
+      industry: input.industry,
       goals: input.goals,
       voiceAttributes: input.voiceAttributes,
       platformPriorities: input.platformPriorities,
       contentPillars: input.contentPillars,
       audienceNotes: input.audienceNotes,
+      brandBrief: current?.brandBrief ?? null,
+      brandBriefGeneratedAt: current?.brandBriefGeneratedAt ?? null,
       updatedAt: new Date().toISOString(),
+    };
+    this.strategyProfiles.set(userId, updated);
+    return structuredClone(updated);
+  }
+
+  async setBrandBrief(userId: string, brandBrief: string): Promise<UserStrategyProfile> {
+    const current = this.strategyProfiles.get(userId) ?? emptyStrategyProfile(userId);
+    const updated: UserStrategyProfile = {
+      ...current,
+      brandBrief,
+      brandBriefGeneratedAt: new Date().toISOString(),
     };
     this.strategyProfiles.set(userId, updated);
     return structuredClone(updated);
@@ -355,11 +409,19 @@ export class MemoryRepository implements Repository {
     }
   }
 
+  async hasProcessedStripeWebhookEvent(stripeEventId: string) {
+    return this.processedStripeWebhookEvents.has(stripeEventId);
+  }
+
+  async recordProcessedStripeWebhookEvent(stripeEventId: string, _eventType: string) {
+    this.processedStripeWebhookEvents.add(stripeEventId);
+  }
+
   async userHasActiveSubscription(userId: string) {
     const status =
       this.billingProfiles.get(userId)?.subscriptionStatus ??
       (this.session.profile.userId === userId ? this.session.profile.subscriptionStatus : null);
-    return status === "active" || status === "trialing";
+    return hasActiveSubscriptionStatus(status);
   }
 
   async listOverdueJobRecords(): Promise<JobRecord[]> {
@@ -383,6 +445,16 @@ export class MemoryRepository implements Repository {
 
   async listMediaAssets(userId: string) {
     return this.mediaAssets.filter((asset) => asset.userId === userId);
+  }
+
+  async getMediaAssetsByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const set = new Set(ids);
+    return this.mediaAssets.filter((asset) => set.has(asset.id));
+  }
+
+  async createSignedMediaUrl(_storagePath: string, _expiresInSeconds: number) {
+    return null;
   }
 
   async createMediaAsset(input: CreateMediaAssetInput) {
@@ -590,6 +662,63 @@ export class MemoryRepository implements Repository {
     found.errorMessage = errorMessage;
     return structuredClone(found);
   }
+
+  async listRecommendedSlots(userId: string): Promise<RecommendedSlot[]> {
+    return this.recommendedSlots
+      .filter((slot) => slot.userId === userId)
+      .map((slot) => structuredClone(slot))
+      .sort((a, b) => a.suggestedFor.localeCompare(b.suggestedFor));
+  }
+
+  async getRecommendedSlot(slotId: string): Promise<RecommendedSlot | null> {
+    const found = this.recommendedSlots.find((slot) => slot.id === slotId);
+    return found ? structuredClone(found) : null;
+  }
+
+  async createRecommendedSlot(input: CreateRecommendedSlotInput): Promise<RecommendedSlot> {
+    const slot: RecommendedSlot = {
+      id: makeId("rec-slot"),
+      userId: input.userId,
+      suggestedFor: input.suggestedFor,
+      platform: input.platform,
+      contentTypeHint: input.contentTypeHint,
+      rationale: input.rationale,
+      status: "open",
+      scheduledPostId: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.recommendedSlots.push(slot);
+    return structuredClone(slot);
+  }
+
+  async dismissRecommendedSlot(userId: string, slotId: string): Promise<RecommendedSlot | null> {
+    const found = this.recommendedSlots.find(
+      (slot) => slot.id === slotId && slot.userId === userId,
+    );
+    if (!found) return null;
+    found.status = "dismissed";
+    return structuredClone(found);
+  }
+
+  async markRecommendedSlotFilled(
+    userId: string,
+    slotId: string,
+    scheduledPostId: string,
+  ): Promise<RecommendedSlot | null> {
+    const found = this.recommendedSlots.find(
+      (slot) => slot.id === slotId && slot.userId === userId,
+    );
+    if (!found) return null;
+    found.status = "filled";
+    found.scheduledPostId = scheduledPostId;
+    return structuredClone(found);
+  }
+
+  async deleteOpenRecommendedSlots(userId: string): Promise<void> {
+    this.recommendedSlots = this.recommendedSlots.filter(
+      (slot) => !(slot.userId === userId && slot.status === "open"),
+    );
+  }
 }
 
 // ============================================================
@@ -680,7 +809,7 @@ export class SupabaseRepository implements Repository {
   async getUserStrategyProfile(userId: string): Promise<UserStrategyProfile> {
     const { data, error } = await this.supabase
       .from("user_strategy_profiles")
-      .select("user_id, identity_type, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, updated_at")
+      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -696,6 +825,7 @@ export class SupabaseRepository implements Repository {
       .upsert({
         user_id: userId,
         identity_type: input.identityType,
+        industry: input.industry,
         goals: input.goals,
         voice_attributes: input.voiceAttributes,
         platform_priorities: input.platformPriorities,
@@ -703,7 +833,22 @@ export class SupabaseRepository implements Repository {
         audience_notes: input.audienceNotes,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" })
-      .select("user_id, identity_type, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, updated_at")
+      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapStrategyProfile(data);
+  }
+
+  async setBrandBrief(userId: string, brandBrief: string): Promise<UserStrategyProfile> {
+    const { data, error } = await this.supabase
+      .from("user_strategy_profiles")
+      .upsert({
+        user_id: userId,
+        brand_brief: brandBrief,
+        brand_brief_generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" })
+      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
       .single();
     if (error) throw new Error(error.message);
     return mapStrategyProfile(data);
@@ -753,6 +898,30 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
+  async hasProcessedStripeWebhookEvent(stripeEventId: string) {
+    const { data, error } = await this.supabase
+      .from("stripe_webhook_events")
+      .select("stripe_event_id")
+      .eq("stripe_event_id", stripeEventId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return Boolean(data);
+  }
+
+  async recordProcessedStripeWebhookEvent(stripeEventId: string, eventType: string) {
+    const { error } = await this.supabase
+      .from("stripe_webhook_events")
+      .upsert(
+        {
+          stripe_event_id: stripeEventId,
+          event_type: eventType,
+          processed_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_event_id", ignoreDuplicates: true },
+      );
+    if (error) throw new Error(error.message);
+  }
+
   async userHasActiveSubscription(userId: string) {
     const { data, error } = await this.supabase
       .from("profiles")
@@ -760,7 +929,7 @@ export class SupabaseRepository implements Repository {
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return data?.subscription_status === "active" || data?.subscription_status === "trialing";
+    return hasActiveSubscriptionStatus(data?.subscription_status);
   }
 
   async listOverdueJobRecords(): Promise<JobRecord[]> {
@@ -862,6 +1031,24 @@ export class SupabaseRepository implements Repository {
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map(mapMediaAsset);
+  }
+
+  async getMediaAssetsByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const { data, error } = await this.supabase
+      .from("media_assets")
+      .select("id, user_id, kind, title, storage_path, alt_text, duration_seconds, created_at")
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapMediaAsset);
+  }
+
+  async createSignedMediaUrl(storagePath: string, expiresInSeconds: number) {
+    const { data, error } = await this.supabase.storage
+      .from("media-assets")
+      .createSignedUrl(storagePath, expiresInSeconds);
+    if (error) throw new Error(error.message);
+    return data?.signedUrl ?? null;
   }
 
   async createMediaAsset(input: CreateMediaAssetInput) {
@@ -1167,5 +1354,78 @@ export class SupabaseRepository implements Repository {
         : null,
       providerMetadata: data.provider_metadata ?? {},
     };
+  }
+
+  async listRecommendedSlots(userId: string): Promise<RecommendedSlot[]> {
+    const { data, error } = await this.supabase
+      .from("recommended_slots")
+      .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+      .eq("user_id", userId)
+      .order("suggested_for", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapRecommendedSlot);
+  }
+
+  async getRecommendedSlot(slotId: string): Promise<RecommendedSlot | null> {
+    const { data, error } = await this.supabase
+      .from("recommended_slots")
+      .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+      .eq("id", slotId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapRecommendedSlot(data) : null;
+  }
+
+  async createRecommendedSlot(input: CreateRecommendedSlotInput): Promise<RecommendedSlot> {
+    const { data, error } = await this.supabase
+      .from("recommended_slots")
+      .insert({
+        user_id: input.userId,
+        suggested_for: input.suggestedFor,
+        platform: input.platform,
+        content_type_hint: input.contentTypeHint,
+        rationale: input.rationale,
+      })
+      .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapRecommendedSlot(data);
+  }
+
+  async dismissRecommendedSlot(userId: string, slotId: string): Promise<RecommendedSlot | null> {
+    const { data, error } = await this.supabase
+      .from("recommended_slots")
+      .update({ status: "dismissed" })
+      .eq("id", slotId)
+      .eq("user_id", userId)
+      .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapRecommendedSlot(data) : null;
+  }
+
+  async markRecommendedSlotFilled(
+    userId: string,
+    slotId: string,
+    scheduledPostId: string,
+  ): Promise<RecommendedSlot | null> {
+    const { data, error } = await this.supabase
+      .from("recommended_slots")
+      .update({ status: "filled", scheduled_post_id: scheduledPostId })
+      .eq("id", slotId)
+      .eq("user_id", userId)
+      .select("id, user_id, suggested_for, platform, content_type_hint, rationale, status, scheduled_post_id, created_at")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapRecommendedSlot(data) : null;
+  }
+
+  async deleteOpenRecommendedSlots(userId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("recommended_slots")
+      .delete()
+      .eq("user_id", userId)
+      .eq("status", "open");
+    if (error) throw new Error(error.message);
   }
 }

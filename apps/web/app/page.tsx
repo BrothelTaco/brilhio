@@ -18,16 +18,47 @@ export default function AuthEntryPage() {
 
   const showAuthRequiredMessage = searchParams.get("reason") === "auth-required";
   const showSignedOutMessage = searchParams.get("signedOut") === "1";
+  const showCallbackFailedMessage = searchParams.get("reason") === "auth-callback-failed";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const devLoginResponse = await fetch("/api/dev-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    }).catch(() => null);
+
+    if (devLoginResponse?.ok) {
+      setLoading(false);
+      router.push("/schedule");
+      router.refresh();
+      return;
+    }
+
+    if (devLoginResponse?.status === 401) {
+      setLoading(false);
+      setError("Invalid development login.");
+      return;
+    }
+
+    let signInError: { message: string } | null = null;
+
+    try {
+      const result = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      signInError = result.error;
+    } catch {
+      setLoading(false);
+      setError(
+        "Could not reach Supabase Auth. For local dev login, make sure ALLOW_DEV_AUTH=true and restart pnpm dev.",
+      );
+      return;
+    }
 
     setLoading(false);
 
@@ -38,6 +69,22 @@ export default function AuthEntryPage() {
 
     router.push("/schedule");
     router.refresh();
+  }
+
+  async function handleOAuthSignIn() {
+    setError("");
+    setLoading(true);
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/schedule`,
+      },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setLoading(false);
+    }
   }
 
   return (
@@ -96,6 +143,12 @@ export default function AuthEntryPage() {
               </p>
             ) : null}
 
+            {showCallbackFailedMessage ? (
+              <p className="demo-status demo-status-warn">
+                The sign-in link could not be confirmed. Try signing in again.
+              </p>
+            ) : null}
+
             <form onSubmit={handleSubmit}>
               <label className="field-stack">
                 <span>Email</span>
@@ -132,6 +185,19 @@ export default function AuthEntryPage() {
                 </button>
                 <Link href="/join" className="brilhio-button brilhio-button-secondary">
                   Create an account
+                </Link>
+              </div>
+              <div className="inline-actions">
+                <button
+                  type="button"
+                  className="brilhio-button brilhio-button-secondary"
+                  onClick={handleOAuthSignIn}
+                  disabled={loading}
+                >
+                  Continue with Google
+                </button>
+                <Link href="/reset-password" className="brilhio-button brilhio-button-secondary">
+                  Forgot password?
                 </Link>
               </div>
             </form>

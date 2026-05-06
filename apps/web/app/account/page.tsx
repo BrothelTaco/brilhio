@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { ProductShell } from "../ui/product-shell";
-import { useTheme } from "../ui/theme-provider";
 import { apiFetch } from "../../lib/api-client";
 import {
   audienceSignals,
   contentPillars,
   futureIdeas,
   identityTypes,
+  industries,
   platformPriorities,
   presenceGoals,
   recommendationInputs,
@@ -17,6 +17,7 @@ import {
 
 type StrategyProfile = {
   identityType: string | null;
+  industry: string | null;
   goals: string[];
   voiceAttributes: string[];
   platformPriorities: Record<string, string>;
@@ -26,6 +27,7 @@ type StrategyProfile = {
 
 const DEFAULT_STRATEGY: StrategyProfile = {
   identityType: "Band",
+  industry: null,
   goals: ["Grow fandom", "Sell tickets"],
   voiceAttributes: [...voiceAttributes],
   platformPriorities: Object.fromEntries(
@@ -129,6 +131,7 @@ function StrategyProfilePanel() {
         if (json?.data) {
           setProfile({
             identityType: json.data.identityType ?? DEFAULT_STRATEGY.identityType,
+            industry: json.data.industry ?? DEFAULT_STRATEGY.industry,
             goals: json.data.goals.length ? json.data.goals : DEFAULT_STRATEGY.goals,
             voiceAttributes: json.data.voiceAttributes.length
               ? json.data.voiceAttributes
@@ -150,7 +153,7 @@ function StrategyProfilePanel() {
     return () => {
       active = false;
     };
-  });
+  }, []);
 
   async function save(next = profile) {
     setStatus("saving");
@@ -193,6 +196,29 @@ function StrategyProfilePanel() {
               onClick={() => update({ ...profile, identityType: type })}
             >
               {type}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="brilhio-card surface-card">
+        <div className="surface-head">
+          <div>
+            <p className="brilhio-eyebrow">Industry</p>
+            <h2>What field do you operate in?</h2>
+          </div>
+        </div>
+
+        <div className="chip-row">
+          {industries.map((industry) => (
+            <button
+              key={industry}
+              className={`capability-chip ${
+                profile.industry === industry ? "capability-chip-selected" : ""
+              }`}
+              onClick={() => update({ ...profile, industry })}
+            >
+              {industry}
             </button>
           ))}
         </div>
@@ -287,9 +313,99 @@ function StrategyProfilePanel() {
   );
 }
 
-export default function AccountPage() {
-  const { theme, setTheme } = useTheme();
+function PrivacyPanel() {
+  const [status, setStatus] = useState<"idle" | "exporting" | "deleting" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
 
+  async function exportAccountData() {
+    setStatus("exporting");
+    setMessage("");
+    try {
+      const response = await apiFetch("/api/me/export");
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(typeof json.error === "string" ? json.error : "Export failed.");
+      }
+
+      const blob = new Blob([JSON.stringify(json.data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `brilhio-account-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("done");
+      setMessage("Account export generated.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Account export failed.");
+    }
+  }
+
+  async function deleteAccount() {
+    const confirmed = window.confirm(
+      "Delete this Brilhio account? Any linked Stripe subscription/customer will be cancelled first. This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    setStatus("deleting");
+    setMessage("");
+    try {
+      const response = await apiFetch("/api/me", { method: "DELETE" });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof json.error === "string" ? json.error : "Account deletion failed.");
+      }
+      window.location.assign("/sign-out");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Account deletion failed.");
+    }
+  }
+
+  return (
+    <section className="brilhio-card surface-card">
+      <div className="surface-head compact-head">
+        <div>
+          <p className="brilhio-eyebrow">Privacy</p>
+          <h2>Account data</h2>
+        </div>
+        {status !== "idle" ? <span className="state-badge status-info">{status}</span> : null}
+      </div>
+
+      <p className="surface-body-text">
+        Export your account data or permanently delete the account. Deletion cancels linked Stripe billing before removing the Supabase user.
+      </p>
+
+      {message ? (
+        <p className={`demo-status ${status === "error" ? "demo-status-warn" : "demo-status-ok"}`}>
+          {message}
+        </p>
+      ) : null}
+
+      <div className="inline-actions">
+        <button
+          className="brilhio-button brilhio-button-secondary"
+          onClick={exportAccountData}
+          disabled={status === "exporting" || status === "deleting"}
+        >
+          Export data
+        </button>
+        <button
+          className="brilhio-button brilhio-button-secondary"
+          onClick={deleteAccount}
+          disabled={status === "exporting" || status === "deleting"}
+        >
+          Delete account
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function AccountPage() {
   return (
     <ProductShell activePath="/account">
 
@@ -308,31 +424,9 @@ export default function AccountPage() {
         </section>
 
         <div className="rail-layout">
-          <section className="brilhio-card surface-card">
-            <div className="surface-head compact-head">
-              <div>
-                <p className="brilhio-eyebrow">Appearance</p>
-                <h2>Theme</h2>
-              </div>
-            </div>
-
-            <div className="theme-toggle-row">
-              <button
-                className={`theme-option ${theme === "dark" ? "theme-option-active" : ""}`}
-                onClick={() => setTheme("dark")}
-              >
-                Dark
-              </button>
-              <button
-                className={`theme-option ${theme === "light" ? "theme-option-active" : ""}`}
-                onClick={() => setTheme("light")}
-              >
-                Light
-              </button>
-            </div>
-          </section>
-
           <TimezoneSelector />
+
+          <PrivacyPanel />
 
           <section className="brilhio-card surface-card">
             <div className="surface-head compact-head">

@@ -253,6 +253,21 @@ export const identityTypes = [
   "Creator business",
 ] as const;
 
+export const industries = [
+  "Music",
+  "Hospitality",
+  "Food & beverage",
+  "Fitness & wellness",
+  "Beauty & fashion",
+  "Retail & e-commerce",
+  "Arts & entertainment",
+  "Travel & tourism",
+  "Education & coaching",
+  "Professional services",
+  "Tech & SaaS",
+  "Nonprofit & community",
+] as const;
+
 export const presenceGoals = [
   "Grow fandom",
   "Sell tickets",
