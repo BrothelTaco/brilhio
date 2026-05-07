@@ -41,8 +41,11 @@ import { decryptSecret, encryptSecret } from "./crypto";
 import type {
   BillingProfileUpdate,
   CreateAiSuggestionParams,
+  CreateProviderOAuthStateInput,
   JobRecordUpdate,
+  ProviderOAuthState,
   Repository,
+  UpdateSocialAccountCredentialsInput,
   UpsertSocialAccountConnectionInput,
 } from "./types";
 
@@ -63,13 +66,9 @@ function firstNameFromEmail(email: string | null) {
 function emptyStrategyProfile(userId: string): UserStrategyProfile {
   return {
     userId,
-    identityType: null,
-    industry: null,
-    goals: [],
-    voiceAttributes: [],
-    platformPriorities: {},
-    contentPillars: [],
-    audienceNotes: null,
+    brandType: null,
+    primaryGoal: null,
+    postingFrequency: null,
     brandBrief: null,
     brandBriefGeneratedAt: null,
     updatedAt: new Date().toISOString(),
@@ -78,26 +77,18 @@ function emptyStrategyProfile(userId: string): UserStrategyProfile {
 
 function mapStrategyProfile(row: {
   user_id: string;
-  identity_type: string | null;
-  industry: string | null;
-  goals: string[] | null;
-  voice_attributes: string[] | null;
-  platform_priorities: Record<string, string> | null;
-  content_pillars: string[] | null;
-  audience_notes: string | null;
+  brand_type: string | null;
+  primary_goal: string | null;
+  posting_frequency: string | null;
   brand_brief: string | null;
   brand_brief_generated_at: string | null;
   updated_at: string;
 }): UserStrategyProfile {
   return {
     userId: row.user_id,
-    identityType: row.identity_type,
-    industry: row.industry,
-    goals: row.goals ?? [],
-    voiceAttributes: row.voice_attributes ?? [],
-    platformPriorities: row.platform_priorities ?? {},
-    contentPillars: row.content_pillars ?? [],
-    audienceNotes: row.audience_notes,
+    brandType: (row.brand_type as UserStrategyProfile["brandType"]) ?? null,
+    primaryGoal: (row.primary_goal as UserStrategyProfile["primaryGoal"]) ?? null,
+    postingFrequency: (row.posting_frequency as UserStrategyProfile["postingFrequency"]) ?? null,
     brandBrief: row.brand_brief,
     brandBriefGeneratedAt: row.brand_brief_generated_at,
     updatedAt: row.updated_at,
@@ -174,6 +165,30 @@ function mapSocialAccount(row: {
     providerAccountId: typeof metadata.providerAccountId === "string" ? metadata.providerAccountId : null,
     providerAccountUrn: typeof metadata.providerAccountUrn === "string" ? metadata.providerAccountUrn : null,
     profileUrl: typeof metadata.profileUrl === "string" ? metadata.profileUrl : null,
+  };
+}
+
+function mapProviderOAuthState(row: {
+  id: string;
+  user_id: string;
+  platform: Platform;
+  state_hash: string;
+  code_verifier_encrypted: string | null;
+  redirect_path: string;
+  expires_at: string;
+  created_at: string;
+}, encryptionSecret: string): ProviderOAuthState {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    platform: row.platform,
+    stateHash: row.state_hash,
+    codeVerifier: row.code_verifier_encrypted
+      ? decryptSecret(row.code_verifier_encrypted, encryptionSecret)
+      : null,
+    redirectPath: row.redirect_path,
+    expiresAt: row.expires_at,
+    createdAt: ensureDateString(row.created_at),
   };
 }
 
@@ -315,6 +330,7 @@ export class MemoryRepository implements Repository {
   private approvalTasks = structuredClone(demoApprovalTasks);
   private jobs = structuredClone(demoJobs);
   private recommendedSlots: RecommendedSlot[] = [];
+  private providerOAuthStates: ProviderOAuthState[] = [];
   private strategyProfiles = new Map<string, UserStrategyProfile>();
   private billingProfiles = new Map<string, BillingProfileUpdate>();
   private processedStripeWebhookEvents = new Set<string>();
@@ -354,13 +370,9 @@ export class MemoryRepository implements Repository {
     const current = this.strategyProfiles.get(userId);
     const updated: UserStrategyProfile = {
       userId,
-      identityType: input.identityType,
-      industry: input.industry,
-      goals: input.goals,
-      voiceAttributes: input.voiceAttributes,
-      platformPriorities: input.platformPriorities,
-      contentPillars: input.contentPillars,
-      audienceNotes: input.audienceNotes,
+      brandType: input.brandType,
+      primaryGoal: input.primaryGoal,
+      postingFrequency: input.postingFrequency,
       brandBrief: current?.brandBrief ?? null,
       brandBriefGeneratedAt: current?.brandBriefGeneratedAt ?? null,
       updatedAt: new Date().toISOString(),
@@ -406,6 +418,37 @@ export class MemoryRepository implements Repository {
     );
     if (found) {
       await this.updateBillingProfileByUserId(found[0], update);
+    }
+  }
+
+  async listBillingProfilesForReconciliation() {
+    const rows = [...this.billingProfiles.entries()]
+      .filter(([, profile]) => profile.stripeCustomerId || profile.stripeSubscriptionId)
+      .map(([userId, profile]) => ({
+        userId,
+        email: this.session.profile.userId === userId ? this.session.profile.email : null,
+        stripeCustomerId: profile.stripeCustomerId ?? null,
+        stripeSubscriptionId: profile.stripeSubscriptionId ?? null,
+      }));
+
+    if (
+      this.session.profile.stripeCustomerId ||
+      this.session.profile.stripeSubscriptionId
+    ) {
+      rows.push({
+        userId: this.session.profile.userId,
+        email: this.session.profile.email,
+        stripeCustomerId: this.session.profile.stripeCustomerId,
+        stripeSubscriptionId: this.session.profile.stripeSubscriptionId,
+      });
+    }
+
+    return rows;
+  }
+
+  async setOnboardingCompleted(userId: string): Promise<void> {
+    if (this.session.profile.userId === userId) {
+      this.session.profile.onboardingCompletedAt = new Date().toISOString();
     }
   }
 
@@ -606,6 +649,7 @@ export class MemoryRepository implements Repository {
     return {
       accessToken: `memory-${platform}-token`,
       refreshToken: null,
+      tokenExpiresAt: account.tokenExpiresAt,
       providerMetadata: {
         providerAccountId: account.providerAccountId ?? null,
         providerAccountUrn: account.providerAccountUrn ?? null,
@@ -644,6 +688,53 @@ export class MemoryRepository implements Repository {
     };
     this.socialAccounts.unshift(created);
     return created;
+  }
+
+  async updateSocialAccountCredentials(input: UpdateSocialAccountCredentialsInput) {
+    const account = this.socialAccounts.find(
+      (existing) => existing.userId === input.userId && existing.platform === input.platform,
+    );
+    if (!account) return null;
+    account.tokenExpiresAt = input.tokenExpiresAt ?? account.tokenExpiresAt;
+    account.status = "connected";
+    return structuredClone(account);
+  }
+
+  async disconnectSocialAccount(userId: string, platform: Platform) {
+    const account = this.socialAccounts.find(
+      (existing) => existing.userId === userId && existing.platform === platform,
+    );
+    if (!account) return null;
+    account.status = "disconnected";
+    account.tokenExpiresAt = null;
+    return structuredClone(account);
+  }
+
+  async createProviderOAuthState(input: CreateProviderOAuthStateInput) {
+    const state: ProviderOAuthState = {
+      id: makeId("oauth-state"),
+      userId: input.userId,
+      platform: input.platform,
+      stateHash: input.stateHash,
+      codeVerifier: input.codeVerifier ?? null,
+      redirectPath: input.redirectPath,
+      expiresAt: input.expiresAt,
+      createdAt: new Date().toISOString(),
+    };
+    this.providerOAuthStates.unshift(state);
+    return structuredClone(state);
+  }
+
+  async consumeProviderOAuthState(stateHash: string) {
+    const index = this.providerOAuthStates.findIndex(
+      (state) =>
+        state.stateHash === stateHash &&
+        new Date(state.expiresAt).getTime() > Date.now(),
+    );
+    if (index === -1) return null;
+
+    const [state] = this.providerOAuthStates.splice(index, 1);
+    return state ? structuredClone(state) : null;
   }
 
   async markScheduledPostPublished(scheduledPostId: string, providerPostId: string) {
@@ -747,7 +838,7 @@ export class SupabaseRepository implements Repository {
   async getAuthSession(user: AuthenticatedUser): Promise<AuthSession> {
     const { data: profileRow, error } = await this.supabase
       .from("profiles")
-      .select("id, user_id, email, timezone, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, created_at")
+      .select("id, user_id, email, timezone, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, onboarding_completed_at, created_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -766,6 +857,7 @@ export class SupabaseRepository implements Repository {
           subscriptionStatus: null,
           subscriptionCurrentPeriodEnd: null,
           subscriptionCancelAtPeriodEnd: false,
+          onboardingCompletedAt: null,
           createdAt: new Date().toISOString(),
         },
       };
@@ -783,6 +875,7 @@ export class SupabaseRepository implements Repository {
         subscriptionStatus: profileRow.subscription_status ?? null,
         subscriptionCurrentPeriodEnd: profileRow.subscription_current_period_end ?? null,
         subscriptionCancelAtPeriodEnd: profileRow.subscription_cancel_at_period_end ?? false,
+        onboardingCompletedAt: profileRow.onboarding_completed_at ?? null,
         createdAt: profileRow.created_at,
       },
     };
@@ -809,7 +902,7 @@ export class SupabaseRepository implements Repository {
   async getUserStrategyProfile(userId: string): Promise<UserStrategyProfile> {
     const { data, error } = await this.supabase
       .from("user_strategy_profiles")
-      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -824,16 +917,12 @@ export class SupabaseRepository implements Repository {
       .from("user_strategy_profiles")
       .upsert({
         user_id: userId,
-        identity_type: input.identityType,
-        industry: input.industry,
-        goals: input.goals,
-        voice_attributes: input.voiceAttributes,
-        platform_priorities: input.platformPriorities,
-        content_pillars: input.contentPillars,
-        audience_notes: input.audienceNotes,
+        brand_type: input.brandType,
+        primary_goal: input.primaryGoal,
+        posting_frequency: input.postingFrequency,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" })
-      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
       .single();
     if (error) throw new Error(error.message);
     return mapStrategyProfile(data);
@@ -848,7 +937,7 @@ export class SupabaseRepository implements Repository {
         brand_brief_generated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" })
-      .select("user_id, identity_type, industry, goals, voice_attributes, platform_priorities, content_pillars, audience_notes, brand_brief, brand_brief_generated_at, updated_at")
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
       .single();
     if (error) throw new Error(error.message);
     return mapStrategyProfile(data);
@@ -887,6 +976,15 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
+  async setOnboardingCompleted(userId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("profiles")
+      .update({ onboarding_completed_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("onboarding_completed_at", null);
+    if (error) throw new Error(error.message);
+  }
+
   async updateBillingProfileByStripeCustomerId(
     stripeCustomerId: string,
     update: BillingProfileUpdate,
@@ -896,6 +994,21 @@ export class SupabaseRepository implements Repository {
       .update(this.billingPatch(update))
       .eq("stripe_customer_id", stripeCustomerId);
     if (error) throw new Error(error.message);
+  }
+
+  async listBillingProfilesForReconciliation() {
+    const { data, error } = await this.supabase
+      .from("profiles")
+      .select("user_id, email, stripe_customer_id, stripe_subscription_id")
+      .or("stripe_customer_id.not.is.null,stripe_subscription_id.not.is.null");
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map((row) => ({
+      userId: row.user_id,
+      email: row.email ?? null,
+      stripeCustomerId: row.stripe_customer_id ?? null,
+      stripeSubscriptionId: row.stripe_subscription_id ?? null,
+    }));
   }
 
   async hasProcessedStripeWebhookEvent(stripeEventId: string) {
@@ -1315,6 +1428,114 @@ export class SupabaseRepository implements Repository {
     return mapSocialAccount(data);
   }
 
+  async updateSocialAccountCredentials(input: UpdateSocialAccountCredentialsInput) {
+    const { data: existing, error: existingError } = await this.supabase
+      .from("social_accounts")
+      .select("id, provider_metadata")
+      .eq("user_id", input.userId)
+      .eq("platform", input.platform)
+      .maybeSingle();
+    if (existingError) throw new Error(existingError.message);
+    if (!existing) return null;
+
+    const providerMetadata = {
+      ...(existing.provider_metadata ?? {}),
+      ...(input.providerMetadata ?? {}),
+    };
+    const update: Record<string, unknown> = {
+      status: "connected",
+      access_token_encrypted: encryptSecret(input.accessToken, this.encryptionSecret),
+      token_expires_at: input.tokenExpiresAt,
+      provider_metadata: providerMetadata,
+    };
+
+    if (input.refreshToken !== undefined) {
+      update.refresh_token_encrypted = input.refreshToken
+        ? encryptSecret(input.refreshToken, this.encryptionSecret)
+        : null;
+    }
+
+    const { data, error } = await this.supabase
+      .from("social_accounts")
+      .update(update)
+      .eq("id", existing.id)
+      .select("id, user_id, platform, handle, status, audience_label, token_expires_at, provider_metadata")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapSocialAccount(data);
+  }
+
+  async disconnectSocialAccount(userId: string, platform: Platform) {
+    const { data: existing, error: existingError } = await this.supabase
+      .from("social_accounts")
+      .select("id, provider_metadata")
+      .eq("user_id", userId)
+      .eq("platform", platform)
+      .maybeSingle();
+    if (existingError) throw new Error(existingError.message);
+    if (!existing) return null;
+
+    const { data, error } = await this.supabase
+      .from("social_accounts")
+      .update({
+        status: "disconnected",
+        access_token_encrypted: null,
+        refresh_token_encrypted: null,
+        token_expires_at: null,
+        provider_metadata: {
+          ...(existing.provider_metadata ?? {}),
+          disconnectedAt: new Date().toISOString(),
+        },
+      })
+      .eq("id", existing.id)
+      .select("id, user_id, platform, handle, status, audience_label, token_expires_at, provider_metadata")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapSocialAccount(data);
+  }
+
+  async createProviderOAuthState(input: CreateProviderOAuthStateInput) {
+    const { data, error } = await this.supabase
+      .from("provider_oauth_states")
+      .insert({
+        user_id: input.userId,
+        platform: input.platform,
+        state_hash: input.stateHash,
+        code_verifier_encrypted: input.codeVerifier
+          ? encryptSecret(input.codeVerifier, this.encryptionSecret)
+          : null,
+        redirect_path: input.redirectPath,
+        expires_at: input.expiresAt,
+      })
+      .select("id, user_id, platform, state_hash, code_verifier_encrypted, redirect_path, expires_at, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapProviderOAuthState(data, this.encryptionSecret);
+  }
+
+  async consumeProviderOAuthState(stateHash: string) {
+    const now = new Date().toISOString();
+    const { data: existing, error: selectError } = await this.supabase
+      .from("provider_oauth_states")
+      .select("id, user_id, platform, state_hash, code_verifier_encrypted, redirect_path, expires_at, created_at")
+      .eq("state_hash", stateHash)
+      .is("consumed_at", null)
+      .gt("expires_at", now)
+      .maybeSingle();
+    if (selectError) throw new Error(selectError.message);
+    if (!existing) return null;
+
+    const { data, error } = await this.supabase
+      .from("provider_oauth_states")
+      .update({ consumed_at: now })
+      .eq("id", existing.id)
+      .is("consumed_at", null)
+      .select("id, user_id, platform, state_hash, code_verifier_encrypted, redirect_path, expires_at, created_at")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapProviderOAuthState(data, this.encryptionSecret) : null;
+  }
+
   async markScheduledPostPublished(scheduledPostId: string, providerPostId: string) {
     const { data, error } = await this.supabase
       .from("scheduled_posts")
@@ -1340,7 +1561,7 @@ export class SupabaseRepository implements Repository {
   async getSocialAccountCredentials(userId: string, platform: Platform) {
     const { data, error } = await this.supabase
       .from("social_accounts")
-      .select("access_token_encrypted, refresh_token_encrypted, provider_metadata")
+      .select("access_token_encrypted, refresh_token_encrypted, token_expires_at, provider_metadata")
       .eq("user_id", userId)
       .eq("platform", platform)
       .maybeSingle();
@@ -1352,6 +1573,7 @@ export class SupabaseRepository implements Repository {
       refreshToken: data.refresh_token_encrypted
         ? decryptSecret(data.refresh_token_encrypted, this.encryptionSecret)
         : null,
+      tokenExpiresAt: data.token_expires_at,
       providerMetadata: data.provider_metadata ?? {},
     };
   }

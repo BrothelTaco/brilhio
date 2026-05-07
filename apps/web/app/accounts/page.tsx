@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProductShell } from "../ui/product-shell";
 import { PlatformIcon } from "../ui/platform-icons";
-import { connectionChecklist, automationGuardrails } from "../ui/scaffold-data";
 import { apiFetch } from "../../lib/api-client";
 
 type Platform = "instagram" | "tiktok" | "facebook" | "x";
@@ -13,70 +13,27 @@ type ConnectedAccount = {
   id: string;
   handle: string;
   status: SocialAccountStatus;
-  audienceLabel: string;
   tokenExpiresAt: string | null;
 };
 
 type ProviderItem = {
   platform: Platform;
   displayName: string;
-  description: string;
-  connectionMode: string;
-  publishMode: string;
-  supportedAssetKinds: string[];
+  oauthEnabled?: boolean;
   account: ConnectedAccount | null;
 };
 
-type ConnectState =
-  | { phase: "idle" }
-  | { phase: "open"; platform: Platform }
-  | { phase: "loading"; platform: Platform }
-  | { phase: "success"; platform: Platform }
-  | { phase: "error"; platform: Platform; message: string };
-
 const FALLBACK_PROVIDERS: ProviderItem[] = [
-  {
-    platform: "instagram",
-    displayName: "Instagram",
-    description: "Short-form visual publishing with image, video, and carousel support.",
-    connectionMode: "manual",
-    publishMode: "sandbox",
-    supportedAssetKinds: ["image", "video", "carousel"],
-    account: null,
-  },
-  {
-    platform: "tiktok",
-    displayName: "TikTok",
-    description: "Video-first publishing tuned for short-form discovery loops.",
-    connectionMode: "manual",
-    publishMode: "sandbox",
-    supportedAssetKinds: ["video"],
-    account: null,
-  },
-  {
-    platform: "facebook",
-    displayName: "Facebook",
-    description: "Community publishing for page updates, launches, and mixed media campaigns.",
-    connectionMode: "manual",
-    publishMode: "sandbox",
-    supportedAssetKinds: ["image", "video", "carousel", "document"],
-    account: null,
-  },
-  {
-    platform: "x",
-    displayName: "X",
-    description: "Text-led distribution for updates, launch threads, and short commentary.",
-    connectionMode: "manual",
-    publishMode: "sandbox",
-    supportedAssetKinds: ["image", "video"],
-    account: null,
-  },
+  { platform: "instagram", displayName: "Instagram", account: null },
+  { platform: "tiktok", displayName: "TikTok", account: null },
+  { platform: "facebook", displayName: "Facebook", account: null },
+  { platform: "x", displayName: "X", account: null },
 ];
 
 function statusLabel(status: SocialAccountStatus) {
   if (status === "connected") return "Connected";
   if (status === "attention_required") return "Needs attention";
-  return "Disconnected";
+  return "Not connected";
 }
 
 function statusClass(status: SocialAccountStatus) {
@@ -86,20 +43,38 @@ function statusClass(status: SocialAccountStatus) {
 }
 
 export default function AccountsPage() {
+  const searchParams = useSearchParams();
   const [providers, setProviders] = useState<ProviderItem[]>(FALLBACK_PROVIDERS);
-  const [handle, setHandle] = useState("");
-  const [audienceLabel, setAudienceLabel] = useState("");
-  const [connectState, setConnectState] = useState<ConnectState>({ phase: "idle" });
+  const [loadingPlatform, setLoadingPlatform] = useState<Platform | null>(null);
+  const [disconnectingPlatform, setDisconnectingPlatform] = useState<Platform | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(
+    null,
+  );
 
   const fetchProviders = useCallback(async () => {
     try {
       const res = await apiFetch("/api/providers");
-      if (res.ok) {
-        const json = await res.json();
-        setProviders(json.data);
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setMessage({
+          tone: "error",
+          text:
+            typeof json.message === "string"
+              ? json.message
+              : typeof json.error === "string"
+                ? json.error
+              : "Could not load connected platforms.",
+        });
+        return;
       }
+
+      setProviders(json.data);
     } catch {
-      // API not reachable — fallback stays in place
+      setMessage({
+        tone: "error",
+        text: "Could not reach the server to load connected platforms.",
+      });
     }
   }, []);
 
@@ -107,43 +82,96 @@ export default function AccountsPage() {
     fetchProviders();
   }, [fetchProviders]);
 
-  function openConnect(platform: Platform) {
-    setHandle("");
-    setAudienceLabel("");
-    setConnectState({ phase: "open", platform });
-  }
+  useEffect(() => {
+    const oauthStatus = searchParams.get("oauth");
+    const oauthPlatform = searchParams.get("platform");
+    const oauthReason = searchParams.get("reason");
 
-  function cancelConnect() {
-    setConnectState({ phase: "idle" });
-  }
+    if (oauthStatus === "connected") {
+      setMessage({
+        tone: "success",
+        text: `${oauthPlatform ?? "Provider"} connected successfully.`,
+      });
+    } else if (oauthStatus === "failed") {
+      setMessage({
+        tone: "error",
+        text: `Connection failed: ${oauthReason ?? "Please try again."}`,
+      });
+    }
+  }, [searchParams]);
 
-  async function submitConnect(platform: Platform) {
-    if (!handle.trim()) return;
-    setConnectState({ phase: "loading", platform });
+  async function startOAuthConnect(platform: Platform) {
+    setMessage(null);
+    setLoadingPlatform(platform);
+
     try {
-      const res = await apiFetch(`/api/providers/${platform}/connect`, {
+      const res = await apiFetch(`/api/providers/${platform}/oauth/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform,
-          handle: handle.trim(),
-          audienceLabel: audienceLabel.trim() || "General audience",
-        }),
+        body: JSON.stringify({ redirectPath: "/accounts" }),
       });
-      if (res.ok) {
-        setConnectState({ phase: "success", platform });
-        await fetchProviders();
-        setTimeout(() => setConnectState({ phase: "idle" }), 1400);
-      } else {
-        const json = await res.json().catch(() => ({}));
-        setConnectState({
-          phase: "error",
-          platform,
-          message: typeof json.error === "string" ? json.error : "Connection failed.",
+      const json = await res.json().catch(() => ({}));
+      const authorizationUrl =
+        typeof json?.data?.authorizationUrl === "string"
+          ? json.data.authorizationUrl
+          : null;
+
+      if (!res.ok || !authorizationUrl) {
+        setMessage({
+          tone: "error",
+          text:
+            typeof json.message === "string"
+              ? json.message
+              : typeof json.error === "string"
+                ? json.error
+              : "Could not start the provider connection.",
         });
+        setLoadingPlatform(null);
+        return;
       }
+
+      window.location.assign(authorizationUrl);
     } catch {
-      setConnectState({ phase: "error", platform, message: "Could not reach the server." });
+      setMessage({
+        tone: "error",
+        text: "Could not reach the server to start the provider connection.",
+      });
+      setLoadingPlatform(null);
+    }
+  }
+
+  async function disconnectAccount(platform: Platform) {
+    setMessage(null);
+    setDisconnectingPlatform(platform);
+
+    try {
+      const res = await apiFetch(`/api/providers/${platform}/disconnect`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setMessage({
+          tone: "error",
+          text:
+            typeof json.message === "string"
+              ? json.message
+              : typeof json.error === "string"
+                ? json.error
+              : "Could not disconnect the account.",
+        });
+        return;
+      }
+
+      setMessage({ tone: "success", text: "Account disconnected." });
+      await fetchProviders();
+    } catch {
+      setMessage({
+        tone: "error",
+        text: "Could not reach the server to disconnect the account.",
+      });
+    } finally {
+      setDisconnectingPlatform(null);
     }
   }
 
@@ -154,165 +182,68 @@ export default function AccountsPage() {
           <div>
             <p className="brilhio-eyebrow">Accounts</p>
             <h1>Linked Platforms</h1>
-            <p>
-              Connect your social accounts to enable scheduling and automated
-              publishing.
-            </p>
+            <p>Connect your social accounts to enable scheduling and automated publishing.</p>
           </div>
         </div>
 
-        <div className="accounts-layout">
-          <div className="provider-grid">
-            {providers.map((provider) => {
-              const isOpen =
-                connectState.phase !== "idle" && connectState.platform === provider.platform;
-              const isLoading =
-                connectState.phase === "loading" && connectState.platform === provider.platform;
-              const isSuccess =
-                connectState.phase === "success" && connectState.platform === provider.platform;
-              const isError =
-                connectState.phase === "error" && connectState.platform === provider.platform;
-              const account = provider.account;
+        {message && (
+          <div
+            className={`lp-oauth-banner brilhio-card ${
+              message.tone === "success" ? "lp-oauth-banner-success" : "lp-oauth-banner-error"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
 
-              return (
-                <article key={provider.platform} className="provider-card brilhio-card">
-                  <div className="provider-head">
-                    <div className="lp-provider-identity">
-                      <PlatformIcon platform={provider.platform} size={26} />
-                      <h2>{provider.displayName}</h2>
-                    </div>
-                    {account ? (
-                      <span className={`state-badge ${statusClass(account.status)}`}>
-                        {statusLabel(account.status)}
-                      </span>
-                    ) : (
-                      <span className="state-badge status-muted">Not connected</span>
-                    )}
+        <div className="provider-grid accounts-provider-grid">
+          {providers.map((provider) => {
+            const account =
+              provider.account && provider.account.status !== "disconnected"
+                ? provider.account
+                : null;
+            const isConnected = account?.status === "connected";
+            const isLoading = loadingPlatform === provider.platform;
+            const isDisconnecting = disconnectingPlatform === provider.platform;
+
+            return (
+              <article key={provider.platform} className="provider-card brilhio-card">
+                <div className="provider-head">
+                  <div className="lp-provider-identity">
+                    <PlatformIcon platform={provider.platform} size={26} />
+                    <h2>{provider.displayName}</h2>
                   </div>
-
-                  <p className="provider-copy">{provider.description}</p>
-
-                  <div className="provider-section">
-                    <span>Formats</span>
-                    <div className="chip-row">
-                      {provider.supportedAssetKinds.map((kind) => (
-                        <span key={kind} className="capability-chip capability-chip-alt">
-                          {kind}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="provider-section">
-                    <span>Mode</span>
-                    <div className="chip-row">
-                      <span className="capability-chip">{provider.connectionMode}</span>
-                      <span className="capability-chip">{provider.publishMode}</span>
-                    </div>
-                  </div>
-
-                  {account && !isOpen && (
-                    <div className="lp-connected-state">
-                      <div className="lp-connected-row">
-                        <PlatformIcon platform={provider.platform} size={14} />
-                        <span className="lp-connected-handle">{account.handle}</span>
-                        <span className="lp-connected-sep">·</span>
-                        <span className="lp-connected-audience">{account.audienceLabel}</span>
-                      </div>
-                      <button className="lp-secondary-btn" onClick={() => openConnect(provider.platform)}>
-                        Reconnect
-                      </button>
-                    </div>
+                  {account ? (
+                    <span className={`state-badge ${statusClass(account.status)}`}>
+                      {isConnected ? account.handle : statusLabel(account.status)}
+                    </span>
+                  ) : (
+                    <span className="state-badge status-muted">Not connected</span>
                   )}
+                </div>
 
-                  {!account && !isOpen && (
+                <div className="lp-account-action-row">
+                  {account ? (
+                    <button
+                      className="brilhio-button brilhio-button-secondary lp-disconnect-btn"
+                      onClick={() => disconnectAccount(provider.platform)}
+                      disabled={isDisconnecting}
+                    >
+                      {isDisconnecting ? "Disconnecting..." : "Disconnect account"}
+                    </button>
+                  ) : (
                     <button
                       className="lp-connect-btn brilhio-button brilhio-button-primary"
-                      onClick={() => openConnect(provider.platform)}
+                      onClick={() => startOAuthConnect(provider.platform)}
+                      disabled={isLoading}
                     >
-                      Connect account
+                      {isLoading ? "Redirecting..." : "Connect account"}
                     </button>
                   )}
-
-                  {isOpen && (
-                    <div className="lp-connect-form">
-                      <div className="field-stack">
-                        <span>Handle or username</span>
-                        <input
-                          type="text"
-                          placeholder="@yourhandle"
-                          value={handle}
-                          onChange={(e) => setHandle(e.target.value)}
-                          disabled={isLoading || isSuccess}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="field-stack">
-                        <span>Audience label</span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Music fans 18–34"
-                          value={audienceLabel}
-                          onChange={(e) => setAudienceLabel(e.target.value)}
-                          disabled={isLoading || isSuccess}
-                        />
-                      </div>
-                      {isError && (
-                        <p className="lp-form-status lp-form-error">
-                          {(connectState as { message: string }).message}
-                        </p>
-                      )}
-                      {isSuccess && (
-                        <p className="lp-form-status lp-form-success">Account connected.</p>
-                      )}
-                      <div className="lp-form-actions">
-                        <button
-                          className="brilhio-button brilhio-button-primary lp-form-submit"
-                          onClick={() => submitConnect(provider.platform)}
-                          disabled={!handle.trim() || isLoading || isSuccess}
-                        >
-                          {isLoading ? "Connecting…" : "Confirm"}
-                        </button>
-                        <button
-                          className="brilhio-button brilhio-button-secondary"
-                          onClick={cancelConnect}
-                          disabled={isLoading}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="rail-layout">
-            <div className="brilhio-card lp-rail-card">
-              <h3 className="lp-rail-title">Before you connect</h3>
-              <div className="stack-list">
-                {connectionChecklist.map((item, i) => (
-                  <div key={i} className="bullet-row">
-                    <div className="bullet-dot" />
-                    <p>{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="brilhio-card lp-rail-card">
-              <h3 className="lp-rail-title">Automation guardrails</h3>
-              <div className="stack-list">
-                {automationGuardrails.map((g) => (
-                  <div key={g.title} className="lp-guardrail-item">
-                    <strong>{g.title}</strong>
-                    <p>{g.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </ProductShell>

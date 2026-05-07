@@ -1183,6 +1183,35 @@
   margin: 0;
 }
 
+.lp-oauth-banner {
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.lp-oauth-banner-success {
+  border-color: color-mix(in srgb, var(--brilhio-success) 36%, transparent);
+  color: var(--brilhio-success);
+}
+
+.lp-oauth-banner-error {
+  border-color: color-mix(in srgb, #dc2626 34%, transparent);
+  color: #b91c1c;
+}
+
+.accounts-provider-grid {
+  max-width: 980px;
+}
+
+.lp-account-action-row {
+  margin-top: 22px;
+}
+
+.lp-disconnect-btn {
+  width: 100%;
+  font-size: 0.9rem;
+}
+
 /* ── Connected account display ───────────────────────────── */
 
 .lp-connected-state {
@@ -1248,6 +1277,11 @@
 .lp-secondary-btn:hover {
   background: color-mix(in srgb, var(--brilhio-text) 10%, transparent);
   color: var(--brilhio-text);
+}
+
+.lp-secondary-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 /* ── Inline connect form ─────────────────────────────────── */
@@ -1335,8 +1369,40 @@
   }
 
   .week-columns {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     grid-template-rows: auto auto;
+  }
+
+  .week-columns .day-column {
+    grid-column: span 2;
+  }
+
+  .week-columns .day-column:nth-child(1) {
+    grid-column: 1 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(2) {
+    grid-column: 3 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(3) {
+    grid-column: 5 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(4) {
+    grid-column: 7 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(5) {
+    grid-column: 2 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(6) {
+    grid-column: 4 / span 2;
+  }
+
+  .week-columns .day-column:nth-child(7) {
+    grid-column: 6 / span 2;
   }
 }
 
@@ -1504,29 +1570,6 @@
 .modal-primary-actions {
   display: flex;
   gap: 8px;
-}
-
-/* Linear-inspired dark command center refresh */
-:root {
-  --brilhio-ink: var(--color-pitch-black);
-  --brilhio-canvas: var(--color-pitch-black);
-  --brilhio-panel: var(--color-graphite);
-  --brilhio-primary: var(--color-neon-lime);
-  --brilhio-primary-dark: #b7c300;
-  --brilhio-accent: var(--color-neon-lime);
-  --brilhio-line: var(--color-charcoal-grey);
-  --brilhio-text: var(--color-porcelain);
-  --brilhio-muted: var(--color-storm-cloud);
-  --brilhio-success: var(--color-emerald);
-  --brilhio-warning: var(--color-warning-red);
-  --brilhio-radius-sm: var(--radius-sm);
-  --brilhio-radius-md: var(--radius-md);
-  --brilhio-radius-lg: var(--radius-md);
-  --brilhio-shadow: var(--shadow-sm);
-  --brilhio-bg-base: var(--color-pitch-black);
-  --brilhio-bg-glow: rgba(94, 106, 210, 0.08);
-  --brilhio-bg-glow-2: rgba(228, 242, 34, 0.035);
-  --brilhio-button-text: var(--color-pitch-black);
 }
 
 body {
@@ -2103,4 +2146,177 @@ p {
     font-size: 32px;
     line-height: 1.13;
   }
+}
+
+h1,
+h2,
+.page-header h1,
+.onboarding-header h1,
+.auth-story h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+h1,
+h2,
+h3,
+strong {
+  color: var(--brilhio-text);
+}
+
+body {
+  background: var(--brilhio-bg-base);
+}
+
+.auth-story {
+  color: var(--brilhio-text);
+  border-color: var(--color-charcoal-grey);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-deep-slate) 68%, transparent), transparent 46%),
+    var(--color-pitch-black);
+  box-shadow: var(--shadow-xl);
+}
+
+.auth-story .brilhio-pill,
+.brilhio-pill,
+.capability-chip,
+.status-muted {
+  color: var(--color-storm-cloud);
+  background: var(--color-deep-slate);
+}
+
+.auth-story > p,
+.auth-highlight-card p,
+.preview-row span,
+.list-row p,
+.insight-card p,
+.step-card p,
+.upload-dropzone p,
+.provider-sync-bar p,
+.lp-guardrail-item p,
+.overview-card p,
+.form-head p:last-child,
+.onboarding-header p:last-child,
+.page-header p:last-child,
+.surface-copy,
+.provider-copy {
+  color: var(--color-storm-cloud);
+}
+
+.auth-highlight-card,
+.auth-preview-card,
+.auth-form-card,
+.surface-card,
+.provider-card,
+.overview-card,
+.lp-rail-card,
+.day-column,
+.slot-post,
+.slot-stack,
+.modal-card,
+.tooltip-card,
+.slot-tooltip {
+  border-color: var(--color-charcoal-grey);
+  background: var(--color-graphite);
+  box-shadow: var(--shadow-xl);
+}
+
+.auth-highlight-card,
+.auth-preview-card,
+.list-row,
+.insight-card,
+.step-card,
+.modal-file-summary {
+  background: var(--color-graphite);
+}
+
+.auth-form-muted,
+.day-column-head,
+.upload-dropzone,
+.provider-sync-bar {
+  background: var(--color-deep-slate);
+}
+
+.field-stack input,
+.field-stack select,
+.field-stack textarea,
+.modal-section textarea {
+  border-color: var(--color-charcoal-grey);
+  background: #ffffff;
+  color: var(--brilhio-text);
+  box-shadow: var(--shadow-subtle);
+}
+
+.field-stack input:focus,
+.field-stack select:focus,
+.field-stack textarea:focus,
+.modal-section textarea:focus {
+  border-color: var(--brilhio-text);
+  box-shadow: rgba(0, 0, 0, 0.075) 0px 0px 0px 0.5px inset;
+}
+
+.workspace-sidebar {
+  background: var(--color-pitch-black);
+  border-right-color: var(--color-charcoal-grey);
+  box-shadow: none;
+}
+
+.brand-mark {
+  color: var(--brilhio-button-text);
+  background: var(--brilhio-text);
+  border-radius: var(--radius-pill);
+}
+
+.nav-link {
+  color: var(--color-storm-cloud);
+}
+
+.nav-link:hover {
+  color: var(--brilhio-text);
+  background: var(--color-deep-slate);
+}
+
+.nav-link-active,
+.day-column-today .day-column-head,
+.slot-recommended,
+.capability-chip-selected,
+.capability-chip-alt {
+  color: var(--brilhio-text);
+  border-color: var(--color-charcoal-grey);
+  background: var(--color-deep-slate);
+  box-shadow: none;
+}
+
+.day-column-name,
+.day-column-today .day-column-name,
+.day-column-today .day-column-date {
+  color: var(--brilhio-text);
+}
+
+.bullet-dot {
+  background: var(--color-aether-blue);
+}
+
+.sidebar-toggle,
+.cal-nav-btn,
+.lp-secondary-btn,
+.tooltip-action-btn,
+.modal-close {
+  color: var(--color-storm-cloud);
+  background: #ffffff;
+  border-color: var(--color-charcoal-grey);
+}
+
+.sidebar-toggle:hover,
+.cal-nav-btn:hover:not(:disabled),
+.lp-secondary-btn:hover,
+.tooltip-action-btn:hover,
+.modal-close:hover:not(:disabled) {
+  color: var(--brilhio-text);
+  background: var(--color-deep-slate);
+}
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.22);
 }

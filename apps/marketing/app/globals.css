@@ -390,3 +390,114 @@
     line-height: 1.13;
   }
 }
+
+.marketing-page {
+  background: var(--brilhio-bg-base);
+}
+
+.marketing-topbar {
+  border-color: var(--color-charcoal-grey);
+  background: color-mix(in srgb, #ffffff 88%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.marketing-brand {
+  color: var(--brilhio-button-text);
+  background: var(--brilhio-text);
+  border-color: var(--color-charcoal-grey);
+  border-radius: var(--radius-pill);
+}
+
+.marketing-nav a {
+  color: var(--color-storm-cloud);
+}
+
+.marketing-nav a:hover {
+  color: var(--brilhio-text);
+  background: var(--color-deep-slate);
+}
+
+.marketing-hero::before {
+  background: transparent;
+}
+
+.hero-panel {
+  color: var(--brilhio-text);
+}
+
+.hero-panel h1,
+.workflow-card h2,
+.story-copy h2,
+.audience-section h2,
+.cta-panel h2 {
+  color: var(--brilhio-text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.hero-panel p,
+.proof-card p,
+.preview-module p,
+.workflow-card p,
+.story-copy p:last-child,
+.story-card p,
+.audience-card p,
+.cta-panel p:last-child {
+  color: var(--color-storm-cloud);
+}
+
+.hero-panel .brilhio-pill {
+  color: var(--color-storm-cloud);
+  background: var(--color-deep-slate);
+}
+
+.proof-card,
+.preview-module,
+.workflow-card,
+.story-copy,
+.story-card,
+.audience-section,
+.audience-card,
+.hero-preview,
+.preview-window,
+.cta-panel {
+  border-color: var(--color-charcoal-grey);
+  background: var(--color-graphite);
+  box-shadow: var(--shadow-xl);
+}
+
+.proof-card,
+.preview-module,
+.audience-card,
+.window-bar {
+  background: var(--color-deep-slate);
+}
+
+.preview-window,
+.cta-panel {
+  background: #ffffff;
+}
+
+.preview-module-primary,
+.preview-module-accent,
+.workflow-index {
+  border-color: var(--color-charcoal-grey);
+  background: var(--color-deep-slate);
+  color: var(--brilhio-text);
+}
+
+.window-bar span {
+  background: var(--color-fog-grey);
+}
+
+.window-bar span:first-child {
+  background: var(--color-aether-blue);
+}
+
+.proof-card strong,
+.preview-module strong,
+.audience-card strong,
+.story-card h3 {
+  color: var(--brilhio-text);
+}

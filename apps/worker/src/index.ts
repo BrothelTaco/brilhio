@@ -1,7 +1,11 @@
 import { Worker, Queue } from "bullmq";
 import { createRedisConnection, createBrilhioQueue, getQueueDelay, BRILHIO_QUEUE_NAME } from "@brilhio/backend";
 import { jobPayloadSchema } from "@brilhio/contracts";
-import { createWorkerRepository, processJob } from "./jobs";
+import {
+  createWorkerRepository,
+  processJob,
+  reconcileStripeSubscriptions,
+} from "./jobs";
 
 const redisUrl = process.env.REDIS_URL;
 const repository = createWorkerRepository({
@@ -17,10 +21,40 @@ async function boot() {
   console.log("Brilhio worker online");
   console.log(`Repository mode: ${repository.mode}`);
 
+  const stripeReconciliationIntervalMs =
+    Number(process.env.STRIPE_RECONCILIATION_INTERVAL_HOURS ?? 24) *
+    60 *
+    60 *
+    1000;
+
+  async function runStripeReconciliation() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.log("[billing] STRIPE_SECRET_KEY is not configured; reconciliation skipped.");
+      return;
+    }
+
+    try {
+      const result = await reconcileStripeSubscriptions(repository, {
+        stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+      });
+      console.log(`[billing] ${result}`);
+    } catch (error) {
+      console.error("[billing] Stripe subscription reconciliation failed", error);
+    }
+  }
+
+  const stripeReconciliationTimer = setInterval(
+    runStripeReconciliation,
+    stripeReconciliationIntervalMs,
+  );
+  void runStripeReconciliation();
+
   if (!redisUrl) {
     console.log(
       "REDIS_URL is not configured. BullMQ worker is idle until Redis is available.",
     );
+    process.once("SIGINT", () => clearInterval(stripeReconciliationTimer));
+    process.once("SIGTERM", () => clearInterval(stripeReconciliationTimer));
     return;
   }
 
@@ -64,6 +98,21 @@ async function boot() {
         const result = await processJob(repository, payload, {
           openAiApiKey: process.env.OPENAI_API_KEY,
           openAiModel: process.env.OPENAI_MODEL,
+          stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+          xOAuthClientId:
+            process.env.BRILHIO_X_OAUTH_CLIENT_ID ??
+            process.env.X_OAUTH_CLIENT_ID ??
+            process.env.X_CLIENT_ID,
+          xOAuthClientSecret:
+            process.env.BRILHIO_X_OAUTH_CLIENT_SECRET ??
+            process.env.X_OAUTH_CLIENT_SECRET ??
+            process.env.X_CLIENT_SECRET,
+          xOAuthTokenUrl:
+            process.env.BRILHIO_X_OAUTH_TOKEN_URL ??
+            process.env.X_OAUTH_TOKEN_URL,
+          xOAuthTokenAuthMethod:
+            process.env.BRILHIO_X_OAUTH_TOKEN_AUTH_METHOD ??
+            process.env.X_OAUTH_TOKEN_AUTH_METHOD,
         });
 
         await repository.updateJobRecord(payload.jobRecordId, {
@@ -108,6 +157,7 @@ async function boot() {
 
   process.on("SIGINT", async () => {
     clearInterval(recoveryTimer);
+    clearInterval(stripeReconciliationTimer);
     await worker.close();
     await queue.close();
     await connection.quit();
@@ -116,6 +166,7 @@ async function boot() {
 
   process.on("SIGTERM", async () => {
     clearInterval(recoveryTimer);
+    clearInterval(stripeReconciliationTimer);
     await worker.close();
     await queue.close();
     await connection.quit();

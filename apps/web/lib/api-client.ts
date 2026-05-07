@@ -14,8 +14,13 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 
   if (data.session?.access_token) {
     headers.set("Authorization", `Bearer ${data.session.access_token}`);
-  } else if (process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_ID) {
-    headers.set("x-brilhio-dev-user-id", process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_ID);
+  } else if (
+    process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_ID ||
+    process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_EMAIL
+  ) {
+    if (process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_ID) {
+      headers.set("x-brilhio-dev-user-id", process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_ID);
+    }
     if (process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_EMAIL) {
       headers.set("x-brilhio-dev-user-email", process.env.NEXT_PUBLIC_BRILHIO_DEV_USER_EMAIL);
     }

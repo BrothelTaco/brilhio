@@ -114,15 +114,16 @@ drop index if exists approval_tasks_workspace_idx;
 drop index if exists job_records_workspace_idx;
 drop index if exists provider_webhooks_platform_idx;
 
-create index social_accounts_user_idx      on social_accounts      (user_id, platform);
-create index media_assets_user_idx         on media_assets         (user_id, created_at desc);
-create index content_items_user_idx        on content_items        (user_id, created_at desc);
-create index scheduled_posts_user_idx      on scheduled_posts      (user_id, scheduled_for);
-create index scheduled_posts_status_idx    on scheduled_posts      (status, scheduled_for);
-create index ai_suggestions_user_idx       on ai_suggestions       (user_id, created_at desc);
-create index approval_tasks_user_idx       on approval_tasks       (user_id, status, due_at);
-create index job_records_user_idx          on job_records          (user_id, status, scheduled_for);
-create index provider_webhooks_user_idx    on provider_webhooks    (user_id, platform, received_at desc);
+create index if not exists social_accounts_user_idx      on social_accounts      (user_id, platform);
+create index if not exists media_assets_user_idx         on media_assets         (user_id, created_at desc);
+create index if not exists content_items_user_idx        on content_items        (user_id, created_at desc);
+create index if not exists scheduled_posts_user_idx      on scheduled_posts      (user_id, scheduled_for);
+create index if not exists scheduled_posts_status_idx
+  on scheduled_posts (status, scheduled_for);
+create index if not exists ai_suggestions_user_idx       on ai_suggestions       (user_id, created_at desc);
+create index if not exists approval_tasks_user_idx       on approval_tasks       (user_id, status, due_at);
+create index if not exists job_records_user_idx          on job_records          (user_id, status, scheduled_for);
+create index if not exists provider_webhooks_user_idx    on provider_webhooks    (user_id, platform, received_at desc);
 
 -- ============================================================
 -- 6. New simple RLS policies: each user owns their own rows

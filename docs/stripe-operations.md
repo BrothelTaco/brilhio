@@ -25,6 +25,24 @@ curl https://<api-origin>/health/readiness
 
 The response should have `status: "ready"`, `stripeWebhookEventsTable: true`, and `subscriptionEnforcementConfirmed: true` when `REQUIRE_SUBSCRIPTION=true`.
 
+## Subscription Enforcement Model
+
+Stripe webhooks are the source of truth for payment state. Webhook handlers update
+`profiles.subscription_status`, `profiles.stripe_customer_id`, and related
+subscription fields. Web and API route guards check those local profile fields
+instead of calling Stripe on every navigation.
+
+The worker runs a Stripe subscription reconciliation pass once per day by
+default. It scans profiles with Stripe customer/subscription ids and refreshes
+their local billing status from Stripe. Override the cadence with:
+
+```text
+STRIPE_RECONCILIATION_INTERVAL_HOURS=24
+```
+
+This reconciliation is a backup for missed or delayed webhooks; it is not the
+primary request-time access check.
+
 ## Local Webhook Test
 
 Run the API:

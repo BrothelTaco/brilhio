@@ -177,22 +177,21 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // Called when the user finishes onboarding. Idempotent: gated on whether
-  // a brand brief has been generated yet — if so, both the brief regen and
-  // the calendar build are skipped.
+  // Called when the user finishes onboarding. Always marks onboarding complete
+  // (idempotent via the `.is("onboarding_completed_at", null)` guard in the
+  // repo). AI job enqueueing is skipped if a brand brief already exists.
   app.post(
     "/me/strategy-profile/finalize",
     { preHandler: app.requireAuth },
     async (request) => {
       const userId = request.brilhioAuth!.user.id;
+
+      await app.brilhio.repository.setOnboardingCompleted(userId);
+
       const profile = await app.brilhio.repository.getUserStrategyProfile(userId);
 
       const hasMinimumStrategy = Boolean(
-        profile.identityType ||
-          profile.industry ||
-          profile.goals.length ||
-          profile.voiceAttributes.length ||
-          profile.contentPillars.length,
+        profile.brandType || profile.primaryGoal || profile.postingFrequency,
       );
 
       if (profile.brandBriefGeneratedAt || !hasMinimumStrategy) {

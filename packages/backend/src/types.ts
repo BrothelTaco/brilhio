@@ -40,6 +40,13 @@ export type BillingProfileUpdate = {
   subscriptionCancelAtPeriodEnd?: boolean;
 };
 
+export type BillingProfileForReconciliation = {
+  userId: string;
+  email: string | null;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+};
+
 export type CreateAiSuggestionParams = {
   userId: string;
   contentItemId: string;
@@ -55,10 +62,40 @@ export type UpsertSocialAccountConnectionInput = CreateProviderConnectionInput &
   providerMetadata?: Record<string, unknown>;
 };
 
+export type CreateProviderOAuthStateInput = {
+  userId: string;
+  platform: Platform;
+  stateHash: string;
+  codeVerifier?: string | null;
+  redirectPath: string;
+  expiresAt: string;
+};
+
+export type ProviderOAuthState = {
+  id: string;
+  userId: string;
+  platform: Platform;
+  stateHash: string;
+  codeVerifier: string | null;
+  redirectPath: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
 export type SocialAccountCredentials = {
   accessToken: string | null;
   refreshToken: string | null;
+  tokenExpiresAt: string | null;
   providerMetadata: Record<string, unknown>;
+};
+
+export type UpdateSocialAccountCredentialsInput = {
+  userId: string;
+  platform: Platform;
+  accessToken: string;
+  refreshToken?: string | null;
+  tokenExpiresAt?: string | null;
+  providerMetadata?: Record<string, unknown>;
 };
 
 export type AuthResolution = {
@@ -74,9 +111,11 @@ export interface Repository {
   getUserStrategyProfile(userId: string): Promise<UserStrategyProfile>;
   updateUserStrategyProfile(userId: string, input: UpdateUserStrategyProfileInput): Promise<UserStrategyProfile>;
   setBrandBrief(userId: string, brandBrief: string): Promise<UserStrategyProfile>;
+  setOnboardingCompleted(userId: string): Promise<void>;
   ensureStripeCustomerId(userId: string, email: string | null, stripeCustomerId: string): Promise<void>;
   updateBillingProfileByUserId(userId: string, update: BillingProfileUpdate): Promise<void>;
   updateBillingProfileByStripeCustomerId(stripeCustomerId: string, update: BillingProfileUpdate): Promise<void>;
+  listBillingProfilesForReconciliation(): Promise<BillingProfileForReconciliation[]>;
   hasProcessedStripeWebhookEvent(stripeEventId: string): Promise<boolean>;
   recordProcessedStripeWebhookEvent(stripeEventId: string, eventType: string): Promise<void>;
   userHasActiveSubscription(userId: string): Promise<boolean>;
@@ -101,6 +140,10 @@ export interface Repository {
   getSocialAccountById(socialAccountId: string): Promise<SocialAccount | null>;
   getSocialAccountCredentials(userId: string, platform: Platform): Promise<SocialAccountCredentials | null>;
   upsertSocialAccountConnection(input: UpsertSocialAccountConnectionInput): Promise<SocialAccount>;
+  updateSocialAccountCredentials(input: UpdateSocialAccountCredentialsInput): Promise<SocialAccount | null>;
+  disconnectSocialAccount(userId: string, platform: Platform): Promise<SocialAccount | null>;
+  createProviderOAuthState(input: CreateProviderOAuthStateInput): Promise<ProviderOAuthState>;
+  consumeProviderOAuthState(stateHash: string): Promise<ProviderOAuthState | null>;
   markScheduledPostPublished(scheduledPostId: string, providerPostId: string): Promise<ScheduledPost | null>;
   markScheduledPostFailed(scheduledPostId: string, errorMessage: string): Promise<ScheduledPost | null>;
   listRecommendedSlots(userId: string): Promise<RecommendedSlot[]>;

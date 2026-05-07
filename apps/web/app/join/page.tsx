@@ -2,22 +2,22 @@
 
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api-client";
 import { createClient } from "../../lib/supabase/client";
 
 export default function JoinPage() {
-  const router = useRouter();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setNotice("");
     setLoading(true);
 
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -34,6 +34,12 @@ export default function JoinPage() {
       return;
     }
 
+    if (!data.session) {
+      setLoading(false);
+      setNotice("Check your email to confirm your account, then continue to billing.");
+      return;
+    }
+
     if (data.session) {
       try {
         const response = await apiFetch("/api/billing/checkout-session", {
@@ -44,15 +50,13 @@ export default function JoinPage() {
           window.location.assign(json.data.url);
           return;
         }
-        if (response.status !== 501) {
-          setError(
-            typeof json.error === "string"
-              ? json.error
-              : "Account created, but checkout could not be started.",
-          );
-          setLoading(false);
-          return;
-        }
+        setError(
+          typeof json.error === "string"
+            ? json.error
+            : "Account created, but checkout could not be started.",
+        );
+        setLoading(false);
+        return;
       } catch {
         setError("Account created, but checkout could not be reached.");
         setLoading(false);
@@ -61,24 +65,6 @@ export default function JoinPage() {
     }
 
     setLoading(false);
-    router.push("/onboarding");
-    router.refresh();
-  }
-
-  async function handleOAuthSignUp() {
-    setError("");
-    setLoading(true);
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/billing`,
-      },
-    });
-
-    if (oauthError) {
-      setError(oauthError.message);
-      setLoading(false);
-    }
   }
 
   return (
@@ -131,6 +117,10 @@ export default function JoinPage() {
                 <p className="demo-status demo-status-warn">{error}</p>
               ) : null}
 
+              {notice ? (
+                <p className="demo-status demo-status-ok">{notice}</p>
+              ) : null}
+
               <div className="inline-actions">
                 <button
                   type="submit"
@@ -143,14 +133,6 @@ export default function JoinPage() {
                   Already have an account?
                 </Link>
               </div>
-              <button
-                type="button"
-                className="brilhio-button brilhio-button-secondary"
-                onClick={handleOAuthSignUp}
-                disabled={loading}
-              >
-                Continue with Google
-              </button>
             </form>
           </section>
         </div>

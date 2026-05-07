@@ -20,6 +20,7 @@ export type AppConfig = {
   supabaseServiceRoleKey: string | null;
   encryptionSecret: string;
   redisUrl: string | null;
+  apiPublicUrl: string | null;
   webAppUrl: string | null;
   storageBucket: string;
   stripeSecretKey: string | null;
@@ -53,6 +54,11 @@ export function readAppConfig(env = process.env): AppConfig {
       env.SUPABASE_SERVICE_ROLE_KEY ??
       "brilhio-local-secret",
     redisUrl: env.REDIS_URL ?? null,
+    apiPublicUrl:
+      env.API_PUBLIC_URL ??
+      env.NEXT_PUBLIC_API_BASE_URL ??
+      env.NEXT_PUBLIC_API_URL ??
+      null,
     webAppUrl: env.WEB_APP_URL ?? null,
     storageBucket: env.SUPABASE_STORAGE_BUCKET ?? "media-assets",
     stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,

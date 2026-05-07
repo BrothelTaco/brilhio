@@ -5,7 +5,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { DEV_AUTH_COOKIE, isDevAuthEnabled } from "./lib/dev-auth";
 
 const PROTECTED_PATHS = ["/schedule", "/dashboard", "/account", "/accounts", "/onboarding", "/content", "/strategy", "/billing"] as const;
-const BILLING_EXEMPT_PATHS = ["/billing", "/onboarding"] as const;
+const BILLING_EXEMPT_PATHS = ["/billing"] as const;
+const ONBOARDING_EXEMPT_PATHS = ["/billing", "/onboarding", "/account"] as const;
 
 type CookieToSet = {
   name: string;
@@ -36,6 +37,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     isDevAuthEnabled() &&
+    process.env.REQUIRE_SUBSCRIPTION !== "true" &&
     request.cookies.get(DEV_AUTH_COOKIE)?.value === "1"
   ) {
     return NextResponse.next();
@@ -45,7 +47,8 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
     {
       cookies: {
         getAll() {
@@ -74,26 +77,54 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (routeRequiresSubscription(request.nextUrl.pathname)) {
+  const needsProfileCheck =
+    routeRequiresSubscription(request.nextUrl.pathname) ||
+    routeRequiresAuth(request.nextUrl.pathname);
+
+  if (needsProfileCheck) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("subscription_status")
+      .select("subscription_status, onboarding_completed_at")
       .eq("user_id", user.id)
       .maybeSingle();
+
     if (error) {
-      return NextResponse.json(
-        { error: "Subscription check failed." },
-        { status: 500 },
-      );
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/";
+      redirectUrl.search = "";
+      redirectUrl.searchParams.set("reason", "profile-check-failed");
+      return NextResponse.redirect(redirectUrl);
     }
 
-    const hasAccess = hasActiveSubscriptionStatus(data?.subscription_status);
+    if (routeRequiresSubscription(request.nextUrl.pathname)) {
+      const hasAccess = hasActiveSubscriptionStatus(data?.subscription_status);
+      if (!hasAccess) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/billing";
+        redirectUrl.search = "";
+        redirectUrl.searchParams.set("reason", "subscription-required");
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
 
-    if (!hasAccess) {
+    const pathname = request.nextUrl.pathname;
+    const onboardingCompleted = Boolean(data?.onboarding_completed_at);
+    const isOnboardingPath = pathname === "/onboarding" || pathname.startsWith("/onboarding/");
+    const isOnboardingExempt = ONBOARDING_EXEMPT_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+
+    if (isOnboardingPath && onboardingCompleted) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/billing";
+      redirectUrl.pathname = "/schedule";
       redirectUrl.search = "";
-      redirectUrl.searchParams.set("reason", "subscription-required");
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (!isOnboardingPath && !isOnboardingExempt && !onboardingCompleted) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/onboarding";
+      redirectUrl.search = "";
       return NextResponse.redirect(redirectUrl);
     }
   }

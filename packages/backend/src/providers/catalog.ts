@@ -32,7 +32,7 @@ export const providerCatalog: Array<Omit<ProviderCatalogItem, "account">> = [
     description: "Text-led distribution for updates, launch threads, and short commentary.",
     connectionMode: "manual",
     publishMode: "sandbox",
-    supportedAssetKinds: ["image", "video"],
+    supportedAssetKinds: ["image"],
   },
 ];
 

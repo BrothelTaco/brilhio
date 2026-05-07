@@ -28,6 +28,7 @@ export const demoProfile: UserProfile = {
   subscriptionStatus: "active",
   subscriptionCurrentPeriodEnd: null,
   subscriptionCancelAtPeriodEnd: false,
+  onboardingCompletedAt: "2026-04-17T08:00:00.000Z",
   createdAt: "2026-04-17T08:00:00.000Z",
 };
 

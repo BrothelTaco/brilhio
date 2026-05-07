@@ -119,8 +119,18 @@ function fmtDate(iso: string): string {
 export function renderUserContextPrompt(context: UserContext): string {
   const { strategy, connectedAccounts, recentPosts, media, brandBrief } = context;
 
-  const platformPriorities = Object.entries(strategy.platformPriorities)
-    .map(([platform, priority]) => `${platform}: ${priority}`);
+  const goalDescriptions: Record<string, string> = {
+    grow_audience: "grow audience — optimize for reach and follows",
+    drive_action: "drive action — work CTAs and promotional cadence into content",
+    build_community: "build community — prioritize engagement hooks and replies over broadcast",
+  };
+
+  const frequencyDescriptions: Record<string, string> = {
+    low: "low (3–4 posts/week)",
+    regular: "regular (5–7 posts/week)",
+    active: "active (10–14 posts/week)",
+    ai_recommended: "AI-recommended cadence",
+  };
 
   const accountLines = connectedAccounts.map(
     (account) => `${account.platform} (${account.handle}) — ${account.audienceLabel}`,
@@ -138,13 +148,9 @@ export function renderUserContextPrompt(context: UserContext): string {
   const sections = [
     "# About this user",
     bullet([
-      `Industry: ${strategy.industry ?? "(not set)"}`,
-      `Identity: ${strategy.identityType ?? "(not set)"}`,
-      `Goals: ${strategy.goals.join(", ") || "(not set)"}`,
-      `Voice: ${strategy.voiceAttributes.join(", ") || "(not set)"}`,
-      `Content pillars: ${strategy.contentPillars.join(", ") || "(not set)"}`,
-      `Platform priorities: ${platformPriorities.join("; ") || "(not set)"}`,
-      `Audience notes: ${strategy.audienceNotes ?? "(not set)"}`,
+      `Brand type: ${strategy.brandType ?? "(not set)"}`,
+      `Primary goal: ${strategy.primaryGoal ? (goalDescriptions[strategy.primaryGoal] ?? strategy.primaryGoal) : "(not set)"}`,
+      `Posting frequency: ${strategy.postingFrequency ? (frequencyDescriptions[strategy.postingFrequency] ?? strategy.postingFrequency) : "(not set)"}`,
     ]),
     "",
     "# Brand brief",

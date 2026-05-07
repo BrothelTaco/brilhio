@@ -1,310 +1,266 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "../../lib/api-client";
-import {
-  identityTypes,
-  industries,
-  onboardingPreview,
-  onboardingSteps,
-  platformPriorities,
-  presenceGoals,
-  voiceAttributes,
-} from "../ui/scaffold-data";
 
-type StrategyProfile = {
-  identityType: string | null;
-  industry: string | null;
-  goals: string[];
-  voiceAttributes: string[];
-  platformPriorities: Record<string, string>;
-  contentPillars: string[];
-  audienceNotes: string | null;
+const BRAND_TYPES = [
+  "Musician",
+  "Band / Group",
+  "Restaurant",
+  "Café / Coffee shop",
+  "Bar / Venue",
+  "Retail shop",
+  "Fitness creator",
+  "Visual artist",
+  "Photographer",
+  "Software / Tech",
+  "Content creator",
+  "Other",
+] as const;
+
+const PRIMARY_GOALS = [
+  {
+    value: "grow_audience",
+    label: "Grow my audience",
+    description: "The AI optimizes for reach and follows — content is crafted to attract new people, not just speak to existing ones.",
+  },
+  {
+    value: "drive_action",
+    label: "Drive a specific action",
+    description: "The AI works CTAs and promotional cadence into every post — tuned for sales, bookings, streams, or tickets depending on your brand type.",
+  },
+  {
+    value: "build_community",
+    label: "Build community",
+    description: "The AI prioritizes engagement hooks and replies over broadcast — content invites conversation and keeps existing followers active.",
+  },
+] as const;
+
+const POSTING_FREQUENCIES = [
+  {
+    value: "low",
+    label: "Low",
+    detail: "3–4 posts per week",
+    note: "Good for brands that want quality over quantity or have limited content.",
+  },
+  {
+    value: "regular",
+    label: "Regular",
+    detail: "5–7 posts per week",
+    note: "The most common cadence. Consistent without being overwhelming.",
+  },
+  {
+    value: "active",
+    label: "Active",
+    detail: "10–14 posts per week",
+    note: "For brands building momentum fast or running a campaign.",
+  },
+  {
+    value: "ai_recommended",
+    label: "Let AI decide",
+    detail: "Recommended based on your brand type and goal",
+    note: "Brilhio picks a starting cadence and adjusts as it learns what works.",
+  },
+] as const;
+
+type BrandType = (typeof BRAND_TYPES)[number];
+type PrimaryGoal = (typeof PRIMARY_GOALS)[number]["value"];
+type PostingFrequency = (typeof POSTING_FREQUENCIES)[number]["value"];
+
+type Profile = {
+  brandType: BrandType | null;
+  primaryGoal: PrimaryGoal | null;
+  postingFrequency: PostingFrequency | null;
 };
 
-const DEFAULT_PROFILE: StrategyProfile = {
-  identityType: "Band",
-  industry: null,
-  goals: ["Grow fandom", "Sell tickets"],
-  voiceAttributes: ["Warm", "Direct", "A little witty"],
-  platformPriorities: Object.fromEntries(
-    platformPriorities.map((item) => [item.platform, item.priority]),
-  ),
-  contentPillars: [],
-  audienceNotes: "",
-};
-
-function toggle(values: string[], value: string) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
+async function saveProfile(profile: Profile) {
+  const res = await apiFetch("/api/me/strategy-profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  });
+  if (!res.ok) throw new Error("Save failed");
 }
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<StrategyProfile>(DEFAULT_PROFILE);
-  const [status, setStatus] = useState<"loading" | "idle" | "saving" | "saved" | "error">("loading");
-  const [continuing, setContinuing] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [profile, setProfile] = useState<Profile>({
+    brandType: null,
+    primaryGoal: null,
+    postingFrequency: null,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    apiFetch("/api/me/strategy-profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (!active) return;
-        if (json?.data) {
-          setProfile({
-            identityType: json.data.identityType ?? DEFAULT_PROFILE.identityType,
-            industry: json.data.industry ?? DEFAULT_PROFILE.industry,
-            goals: json.data.goals.length ? json.data.goals : DEFAULT_PROFILE.goals,
-            voiceAttributes: json.data.voiceAttributes.length
-              ? json.data.voiceAttributes
-              : DEFAULT_PROFILE.voiceAttributes,
-            platformPriorities: Object.keys(json.data.platformPriorities).length
-              ? json.data.platformPriorities
-              : DEFAULT_PROFILE.platformPriorities,
-            contentPillars: json.data.contentPillars ?? [],
-            audienceNotes: json.data.audienceNotes ?? "",
-          });
-        }
-        setStatus("idle");
-      })
-      .catch(() => {
-        if (active) setStatus("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  async function save(nextProfile = profile) {
-    setStatus("saving");
+  async function goToStep2() {
+    if (!profile.brandType) return;
+    setError("");
+    setSaving(true);
     try {
-      const response = await apiFetch("/api/me/strategy-profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextProfile),
-      });
-      setStatus(response.ok ? "saved" : "error");
+      await saveProfile(profile);
+      setStep(2);
     } catch {
-      setStatus("error");
+      setError("Could not save. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setTimeout(() => setStatus("idle"), 2200);
   }
 
-  function update(nextProfile: StrategyProfile) {
-    setProfile(nextProfile);
-    void save(nextProfile);
-  }
-
-  async function handleContinue() {
-    setContinuing(true);
-    // Flush any unsaved state (audienceNotes only saves on blur).
+  async function goToStep3() {
+    if (!profile.primaryGoal) return;
+    setError("");
+    setSaving(true);
     try {
-      await apiFetch("/api/me/strategy-profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
+      await saveProfile(profile);
+      setStep(3);
+    } catch {
+      setError("Could not save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function finish() {
+    if (!profile.postingFrequency) return;
+    setError("");
+    setSaving(true);
+    try {
+      await saveProfile(profile);
       await apiFetch("/api/me/strategy-profile/finalize", { method: "POST" });
+      router.push("/schedule");
     } catch {
-      // Best-effort: brand-brief generation is async and recoverable. Still navigate.
+      setError("Could not complete setup. Please try again.");
+      setSaving(false);
     }
-    router.push("/dashboard");
   }
 
   return (
-    <main className="workspace-page">
-      <div className="brilhio-shell onboarding-page">
+    <main className="auth-page">
+      <div className="brilhio-shell onboarding-wizard">
+
         <header className="onboarding-header">
           <div>
-            <p className="brilhio-eyebrow">First-time login</p>
-            <h1>Set the strategy before the calendar fills up.</h1>
+            <p className="brilhio-eyebrow">
+              Step {step} of 3 — {step === 1 ? "Brand type" : step === 2 ? "Primary goal" : "Posting frequency"}
+            </p>
+            <h1>
+              {step === 1 && "What kind of account is this?"}
+              {step === 2 && "What do you want social media to do for you?"}
+              {step === 3 && "How often do you want to post?"}
+            </h1>
             <p>
-              These choices are saved to your Supabase profile and used by the
-              account profile, calendar recommendations, and AI jobs.
+              {step === 1 && "This is the most important signal we use. It determines content formats, platform fit, tone, and what a conversion looks like for your brand."}
+              {step === 2 && "Pick one. This shapes how the AI frames every post — the hook, the CTA, the tone. You can change it any time in the Media Strategy tab."}
+              {step === 3 && "This controls how many slots the calendar generates each week. You can change it any time in the Media Strategy tab."}
             </p>
           </div>
-          <div className="page-actions">
-            {status !== "idle" ? <span className="state-badge status-info">{status}</span> : null}
-            <Link href="/account" className="brilhio-button brilhio-button-secondary">
-              Account profile
-            </Link>
-            <button
-              type="button"
-              className="brilhio-button brilhio-button-primary"
-              onClick={handleContinue}
-              disabled={continuing}
-            >
-              {continuing ? "Setting up…" : "Continue"}
-            </button>
+
+          <div className="onboarding-step-indicators">
+            {([1, 2, 3] as const).map((n) => (
+              <span
+                key={n}
+                className={`step-dot ${n === step ? "step-dot-active" : n < step ? "step-dot-done" : ""}`}
+              />
+            ))}
           </div>
         </header>
 
-        <div className="onboarding-layout">
-          <section className="brilhio-card surface-card onboarding-steps">
-            <div className="surface-head">
-              <div>
-                <p className="brilhio-eyebrow">Flow outline</p>
-                <h2>What first-time setup covers</h2>
-              </div>
-            </div>
+        {error ? <p className="demo-status demo-status-warn">{error}</p> : null}
 
-            <div className="stack-list">
-              {onboardingSteps.map((step) => (
-                <article key={step.title} className="step-card">
-                  <span className="workflow-index">{step.step}</span>
-                  <div>
-                    <strong>{step.title}</strong>
-                    <p>{step.body}</p>
-                  </div>
-                </article>
+        {step === 1 && (
+          <div className="onboarding-step">
+            <div className="chip-row chip-row-lg">
+              {BRAND_TYPES.map((type) => (
+                <button
+                  key={type}
+                  className={`capability-chip capability-chip-lg ${profile.brandType === type ? "capability-chip-selected" : ""}`}
+                  onClick={() => setProfile({ ...profile, brandType: type })}
+                >
+                  {type}
+                </button>
               ))}
             </div>
-          </section>
-
-          <div className="rail-layout">
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Identity selection</p>
-                  <h2>Who are you?</h2>
-                </div>
-              </div>
-
-              <div className="chip-row">
-                {identityTypes.map((type) => (
-                  <button
-                    key={type}
-                    className={`capability-chip ${
-                      profile.identityType === type ? "capability-chip-selected" : ""
-                    }`}
-                    onClick={() => update({ ...profile, identityType: type })}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Industry</p>
-                  <h2>What field do you operate in?</h2>
-                </div>
-              </div>
-
-              <div className="chip-row">
-                {industries.map((industry) => (
-                  <button
-                    key={industry}
-                    className={`capability-chip ${
-                      profile.industry === industry ? "capability-chip-selected" : ""
-                    }`}
-                    onClick={() => update({ ...profile, industry })}
-                  >
-                    {industry}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Goals</p>
-                  <h2>What is social for?</h2>
-                </div>
-              </div>
-
-              <div className="chip-row">
-                {presenceGoals.map((goal) => (
-                  <button
-                    key={goal}
-                    className={`capability-chip ${
-                      profile.goals.includes(goal) ? "capability-chip-selected" : ""
-                    }`}
-                    onClick={() => update({ ...profile, goals: toggle(profile.goals, goal) })}
-                  >
-                    {goal}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Voice</p>
-                  <h2>How should Brilhio write?</h2>
-                </div>
-              </div>
-
-              <div className="chip-row">
-                {voiceAttributes.map((attribute) => (
-                  <button
-                    key={attribute}
-                    className={`capability-chip ${
-                      profile.voiceAttributes.includes(attribute)
-                        ? "capability-chip-selected"
-                        : "capability-chip-alt"
-                    }`}
-                    onClick={() =>
-                      update({
-                        ...profile,
-                        voiceAttributes: toggle(profile.voiceAttributes, attribute),
-                      })
-                    }
-                  >
-                    {attribute}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Audience notes</p>
-                  <h2>What should the AI remember?</h2>
-                </div>
-              </div>
-              <label className="field-stack">
-                <span>Notes</span>
-                <textarea
-                  value={profile.audienceNotes ?? ""}
-                  onChange={(event) =>
-                    setProfile({ ...profile, audienceNotes: event.target.value })
-                  }
-                  onBlur={() => save()}
-                  rows={4}
-                  placeholder="Audience, offers, recurring events, words to avoid..."
-                />
-              </label>
-            </section>
-
-            <section className="brilhio-card surface-card">
-              <div className="surface-head compact-head">
-                <div>
-                  <p className="brilhio-eyebrow">Starter recommendations</p>
-                  <h2>Generated from setup</h2>
-                </div>
-              </div>
-
-              <div className="stack-list">
-                {onboardingPreview.map((item) => (
-                  <article key={item.title} className="insight-card">
-                    <strong>{item.title}</strong>
-                    <p>{item.body}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
+            <div className="wizard-actions">
+              <button
+                className="brilhio-button brilhio-button-primary"
+                onClick={goToStep2}
+                disabled={!profile.brandType || saving}
+              >
+                {saving ? "Saving…" : "Next"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {step === 2 && (
+          <div className="onboarding-step">
+            <div className="goal-card-grid">
+              {PRIMARY_GOALS.map((goal) => (
+                <button
+                  key={goal.value}
+                  className={`goal-card ${profile.primaryGoal === goal.value ? "goal-card-selected" : ""}`}
+                  onClick={() => setProfile({ ...profile, primaryGoal: goal.value })}
+                >
+                  <strong>{goal.label}</strong>
+                  <p>{goal.description}</p>
+                </button>
+              ))}
+            </div>
+            <div className="wizard-actions">
+              <button
+                className="brilhio-button brilhio-button-secondary"
+                onClick={() => setStep(1)}
+                disabled={saving}
+              >
+                Back
+              </button>
+              <button
+                className="brilhio-button brilhio-button-primary"
+                onClick={goToStep3}
+                disabled={!profile.primaryGoal || saving}
+              >
+                {saving ? "Saving…" : "Next"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="onboarding-step">
+            <div className="frequency-card-grid">
+              {POSTING_FREQUENCIES.map((freq) => (
+                <button
+                  key={freq.value}
+                  className={`frequency-card ${profile.postingFrequency === freq.value ? "frequency-card-selected" : ""}`}
+                  onClick={() => setProfile({ ...profile, postingFrequency: freq.value })}
+                >
+                  <strong>{freq.label}</strong>
+                  <span className="frequency-detail">{freq.detail}</span>
+                  <p>{freq.note}</p>
+                </button>
+              ))}
+            </div>
+            <div className="wizard-actions">
+              <button
+                className="brilhio-button brilhio-button-secondary"
+                onClick={() => setStep(2)}
+                disabled={saving}
+              >
+                Back
+              </button>
+              <button
+                className="brilhio-button brilhio-button-primary"
+                onClick={finish}
+                disabled={!profile.postingFrequency || saving}
+              >
+                {saving ? "Setting up…" : "Finish setup"}
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </main>
   );

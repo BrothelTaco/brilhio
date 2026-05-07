@@ -96,6 +96,7 @@ export const userProfileSchema = z.object({
   subscriptionStatus: z.string().nullable(),
   subscriptionCurrentPeriodEnd: z.string().nullable(),
   subscriptionCancelAtPeriodEnd: z.boolean().default(false),
+  onboardingCompletedAt: z.string().nullable(),
   createdAt: z.string(),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
@@ -107,15 +108,42 @@ export function hasActiveSubscriptionStatus(status: string | null | undefined) {
   return ACTIVE_SUBSCRIPTION_STATUSES.includes(status as ActiveSubscriptionStatus);
 }
 
+export const brandTypeSchema = z.enum([
+  "Musician",
+  "Band / Group",
+  "Restaurant",
+  "Café / Coffee shop",
+  "Bar / Venue",
+  "Retail shop",
+  "Fitness creator",
+  "Visual artist",
+  "Photographer",
+  "Software / Tech",
+  "Content creator",
+  "Other",
+]);
+export type BrandType = z.infer<typeof brandTypeSchema>;
+
+export const primaryGoalSchema = z.enum([
+  "grow_audience",
+  "drive_action",
+  "build_community",
+]);
+export type PrimaryGoal = z.infer<typeof primaryGoalSchema>;
+
+export const postingFrequencySchema = z.enum([
+  "low",
+  "regular",
+  "active",
+  "ai_recommended",
+]);
+export type PostingFrequency = z.infer<typeof postingFrequencySchema>;
+
 export const userStrategyProfileSchema = z.object({
   userId: entityIdSchema,
-  identityType: z.string().nullable(),
-  industry: z.string().nullable(),
-  goals: z.array(z.string()),
-  voiceAttributes: z.array(z.string()),
-  platformPriorities: z.record(z.string(), z.string()),
-  contentPillars: z.array(z.string()),
-  audienceNotes: z.string().nullable(),
+  brandType: brandTypeSchema.nullable(),
+  primaryGoal: primaryGoalSchema.nullable(),
+  postingFrequency: postingFrequencySchema.nullable(),
   brandBrief: z.string().nullable(),
   brandBriefGeneratedAt: z.string().nullable(),
   updatedAt: z.string().min(1),
@@ -352,13 +380,9 @@ export const updateUserTimezoneInputSchema = z.object({
 export type UpdateUserTimezoneInput = z.infer<typeof updateUserTimezoneInputSchema>;
 
 export const updateUserStrategyProfileInputSchema = z.object({
-  identityType: z.string().min(1).nullable().default(null),
-  industry: z.string().min(1).nullable().default(null),
-  goals: z.array(z.string().min(1)).default([]),
-  voiceAttributes: z.array(z.string().min(1)).default([]),
-  platformPriorities: z.record(z.string(), z.string()).default({}),
-  contentPillars: z.array(z.string().min(1)).default([]),
-  audienceNotes: z.string().nullable().default(null),
+  brandType: brandTypeSchema.nullable().default(null),
+  primaryGoal: primaryGoalSchema.nullable().default(null),
+  postingFrequency: postingFrequencySchema.nullable().default(null),
 });
 export type UpdateUserStrategyProfileInput = z.infer<
   typeof updateUserStrategyProfileInputSchema
@@ -392,8 +416,8 @@ export const providerCatalogItemSchema = z.object({
   platform: platformSchema,
   displayName: z.string().min(1),
   description: z.string().min(1),
-  connectionMode: z.literal("manual"),
-  publishMode: z.literal("sandbox"),
+  connectionMode: z.enum(["manual", "oauth"]),
+  publishMode: z.enum(["sandbox", "live"]),
   supportedAssetKinds: z.array(assetKindSchema),
   account: socialAccountSchema.nullable(),
 });

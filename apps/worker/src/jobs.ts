@@ -27,7 +27,56 @@ async function buildSystemPrompt(repository: Repository, userId: string, taskIns
 export type WorkerConfig = {
   openAiApiKey?: string | null;
   openAiModel?: string | null;
+  stripeSecretKey?: string | null;
+  xOAuthClientId?: string | null;
+  xOAuthClientSecret?: string | null;
+  xOAuthTokenUrl?: string | null;
+  xOAuthTokenAuthMethod?: string | null;
 };
+
+type StripeSubscription = {
+  id: string;
+  customer: string;
+  status: string;
+  current_period_end?: number;
+  cancel_at_period_end?: boolean;
+};
+
+type StripeSubscriptionList = {
+  data?: StripeSubscription[];
+};
+
+function periodEnd(value: unknown) {
+  return typeof value === "number" ? new Date(value * 1000).toISOString() : null;
+}
+
+async function stripeGetRequest<T>(
+  secretKey: string,
+  path: string,
+  params: Record<string, string> = {},
+): Promise<T> {
+  const url = new URL(`https://api.stripe.com/v1/${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+    },
+  });
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      typeof json?.error?.message === "string"
+        ? json.error.message
+        : "Stripe request failed.";
+    throw new Error(message);
+  }
+
+  return json as T;
+}
 
 export function createWorkerRepository(config: {
   supabaseUrl?: string | null;
@@ -43,6 +92,68 @@ export function createWorkerRepository(config: {
   }
 
   return new MemoryRepository();
+}
+
+async function fetchStripeSubscriptionForProfile(
+  secretKey: string,
+  profile: Awaited<ReturnType<Repository["listBillingProfilesForReconciliation"]>>[number],
+) {
+  if (profile.stripeSubscriptionId) {
+    return stripeGetRequest<StripeSubscription>(
+      secretKey,
+      `subscriptions/${profile.stripeSubscriptionId}`,
+    );
+  }
+
+  if (!profile.stripeCustomerId) return null;
+
+  const subscriptions = await stripeGetRequest<StripeSubscriptionList>(
+    secretKey,
+    "subscriptions",
+    {
+      customer: profile.stripeCustomerId,
+      status: "all",
+      limit: "1",
+    },
+  );
+
+  return subscriptions.data?.[0] ?? null;
+}
+
+export async function reconcileStripeSubscriptions(
+  repository: Repository,
+  config: WorkerConfig,
+) {
+  if (!config.stripeSecretKey) {
+    return "Skipped Stripe reconciliation because STRIPE_SECRET_KEY is not configured.";
+  }
+
+  const profiles = await repository.listBillingProfilesForReconciliation();
+  let updated = 0;
+  let skipped = 0;
+
+  for (const profile of profiles) {
+    const subscription = await fetchStripeSubscriptionForProfile(
+      config.stripeSecretKey,
+      profile,
+    );
+
+    if (!subscription) {
+      skipped += 1;
+      continue;
+    }
+
+    await repository.updateBillingProfileByUserId(profile.userId, {
+      stripeCustomerId: subscription.customer,
+      stripeSubscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      subscriptionCurrentPeriodEnd: periodEnd(subscription.current_period_end),
+      subscriptionCancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+    });
+    updated += 1;
+  }
+
+  return `Reconciled Stripe subscriptions for ${updated} profile(s); skipped ${skipped}.`;
 }
 
 async function buildCaptionSuggestion(
@@ -317,7 +428,7 @@ async function generateJsonWithOpenAI(
 async function publishScheduledPost(
   repository: Repository,
   payload: Extract<JobPayload, { type: "publish-scheduled-post" }>,
-  _config: WorkerConfig,
+  config: WorkerConfig,
 ) {
   const scheduledPost = await repository.getScheduledPost(payload.scheduledPostId);
   if (!scheduledPost) {
@@ -334,7 +445,7 @@ async function publishScheduledPost(
     throw new Error("Content item for scheduled post not found.");
   }
 
-  const credentials = await repository.getSocialAccountCredentials(
+  let credentials = await repository.getSocialAccountCredentials(
     scheduledPost.userId,
     scheduledPost.platform,
   );
@@ -347,6 +458,34 @@ async function publishScheduledPost(
   if (!credentials.accessToken) {
     throw new Error(
       `${provider.displayName} requires an access token before publishing can run.`,
+    );
+  }
+
+  const expiresAt = credentials.tokenExpiresAt
+    ? new Date(credentials.tokenExpiresAt).getTime()
+    : null;
+  if (
+    scheduledPost.platform === "x" &&
+    credentials.refreshToken &&
+    expiresAt !== null &&
+    expiresAt <= Date.now() + 5 * 60 * 1000
+  ) {
+    const socialAccount = await repository.getSocialAccount(
+      scheduledPost.userId,
+      scheduledPost.platform,
+    );
+    if (socialAccount) {
+      await refreshXToken(repository, socialAccount, config);
+      credentials = await repository.getSocialAccountCredentials(
+        scheduledPost.userId,
+        scheduledPost.platform,
+      );
+    }
+  }
+
+  if (!credentials?.accessToken) {
+    throw new Error(
+      `${provider.displayName} requires a valid access token before publishing can run.`,
     );
   }
 
@@ -371,13 +510,127 @@ async function publishScheduledPost(
   return `Published ${provider.displayName} scheduled post ${payload.scheduledPostId} (${result.mode}).`;
 }
 
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return { raw: text };
+  }
+}
+
+function resolveXTokenAuthMethod(value: string | null | undefined) {
+  if (
+    value === "client_secret_basic" ||
+    value === "client_secret_post" ||
+    value === "none"
+  ) {
+    return value;
+  }
+  return "client_secret_basic";
+}
+
+async function refreshXToken(
+  repository: Repository,
+  socialAccount: NonNullable<Awaited<ReturnType<Repository["getSocialAccountById"]>>>,
+  config: WorkerConfig,
+) {
+  const credentials = await repository.getSocialAccountCredentials(
+    socialAccount.userId,
+    "x",
+  );
+  if (!credentials?.refreshToken) {
+    throw new Error("X account is missing a refresh token. Reconnect the account.");
+  }
+
+  const clientId = config.xOAuthClientId;
+  if (!clientId) {
+    throw new Error("X OAuth client id is required to refresh tokens.");
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: credentials.refreshToken,
+    client_id: clientId,
+  });
+  const headers = new Headers({
+    "Content-Type": "application/x-www-form-urlencoded",
+    Accept: "application/json",
+  });
+
+  const tokenAuthMethod = resolveXTokenAuthMethod(config.xOAuthTokenAuthMethod);
+  if (config.xOAuthClientSecret) {
+    if (tokenAuthMethod === "client_secret_basic") {
+      headers.set(
+        "Authorization",
+        `Basic ${Buffer.from(`${clientId}:${config.xOAuthClientSecret}`).toString("base64")}`,
+      );
+    } else if (tokenAuthMethod === "client_secret_post") {
+      body.set("client_secret", config.xOAuthClientSecret);
+    }
+  }
+
+  const response = await fetch(
+    config.xOAuthTokenUrl ?? "https://api.x.com/2/oauth2/token",
+    {
+      method: "POST",
+      headers,
+      body,
+    },
+  );
+  const json = await readJsonResponse(response);
+  if (!response.ok) {
+    const message =
+      typeof json.error_description === "string"
+        ? json.error_description
+        : typeof json.error === "string"
+          ? json.error
+          : `X token refresh failed with HTTP ${response.status}.`;
+    throw new Error(message);
+  }
+
+  const accessToken =
+    typeof json.access_token === "string" ? json.access_token : null;
+  if (!accessToken) {
+    throw new Error("X token refresh did not return an access token.");
+  }
+
+  const refreshToken =
+    typeof json.refresh_token === "string" ? json.refresh_token : credentials.refreshToken;
+  const tokenExpiresAt =
+    typeof json.expires_in === "number"
+      ? new Date(Date.now() + json.expires_in * 1000).toISOString()
+      : null;
+
+  await repository.updateSocialAccountCredentials({
+    userId: socialAccount.userId,
+    platform: "x",
+    accessToken,
+    refreshToken,
+    tokenExpiresAt,
+    providerMetadata: {
+      tokenRefreshedAt: new Date().toISOString(),
+      tokenType: typeof json.token_type === "string" ? json.token_type : null,
+      scope: typeof json.scope === "string" ? json.scope : null,
+    },
+  });
+
+  return "Refreshed X account credentials.";
+}
+
 async function refreshSocialToken(
   repository: Repository,
   payload: Extract<JobPayload, { type: "refresh-social-token" }>,
+  config: WorkerConfig,
 ) {
   const socialAccount = await repository.getSocialAccountById(payload.socialAccountId);
   if (!socialAccount) {
     throw new Error("Social account not found for token refresh.");
+  }
+
+  if (socialAccount.platform === "x") {
+    return refreshXToken(repository, socialAccount, config);
   }
 
   throw new Error(
@@ -434,7 +687,7 @@ export async function processJob(
     case "publish-scheduled-post":
       return publishScheduledPost(repository, payload, config);
     case "refresh-social-token":
-      return refreshSocialToken(repository, payload);
+      return refreshSocialToken(repository, payload, config);
     case "ingest-provider-webhook":
       return ingestProviderWebhook(repository, payload);
     case "regenerate-brand-brief":

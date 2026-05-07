@@ -35,6 +35,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       stripeWebhookEventsTable: await checkTable(app, "stripe_webhook_events"),
       profilesTable: await checkTable(app, "profiles"),
       userStrategyProfilesTable: await checkTable(app, "user_strategy_profiles"),
+      providerOAuthStatesTable: await checkTable(app, "provider_oauth_states"),
     };
 
     const requireSubscriptionReady =
@@ -50,6 +51,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       checks.mobileAuthCallbackRedirectConfigured &&
       checks.profilesTable &&
       checks.userStrategyProfilesTable &&
+      checks.providerOAuthStatesTable &&
       requireSubscriptionReady;
 
     if (!ready) {
@@ -67,6 +69,10 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
         "20260429000001_brand_brief.sql",
         "20260429000002_profiles_api_owned_writes.sql",
         "20260430000000_recommended_slots.sql",
+        "20260506000000_provider_oauth_states.sql",
+        "20260506000001_auth_payment_hardening.sql",
+        "20260506000002_onboarding_completed.sql",
+        "20260507000000_api_role_grants.sql",
       ],
     };
   });

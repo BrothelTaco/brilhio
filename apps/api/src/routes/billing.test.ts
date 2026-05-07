@@ -33,6 +33,7 @@ function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     supabaseServiceRoleKey: null,
     encryptionSecret: "test-secret",
     redisUrl: null,
+    apiPublicUrl: "http://localhost:4000",
     webAppUrl: "http://localhost:3000",
     storageBucket: "media-assets",
     stripeSecretKey: "sk_test_123",
@@ -126,6 +127,71 @@ describe("auth resolution", () => {
     const disabled = await resolveRequestAuth(disabledContext, { headers: {} } as any);
 
     assert.equal(disabled, null);
+  });
+
+  test("resolves dev users by email when the dev user id is not configured", async () => {
+    const context = {
+      config: {
+        allowDevAuth: true,
+        devUserId: null,
+        devUserEmail: "demo@brilhio.local",
+      },
+      supabaseAdmin: {
+        auth: {
+          admin: {
+            listUsers: async () => ({
+              data: {
+                users: [{ id: "resolved-user", email: "demo@brilhio.local" }],
+              },
+              error: null,
+            }),
+          },
+        },
+      },
+      repository: {
+        getAuthSession: async (user: any) => ({
+          user,
+          profile: { id: "profile-1", userId: user.id },
+        }),
+      },
+    } as any;
+
+    const resolved = await resolveRequestAuth(context, {
+      headers: { "x-brilhio-dev-user-email": "demo@brilhio.local" },
+    } as any);
+
+    assert.equal(resolved?.user.id, "resolved-user");
+    assert.equal(resolved?.user.authSource, "development");
+  });
+
+  test("explains dev auth email lookup failures when Supabase is unreachable", async () => {
+    const context = {
+      config: {
+        allowDevAuth: true,
+        devUserId: null,
+        devUserEmail: "demo@brilhio.local",
+      },
+      supabaseAdmin: {
+        auth: {
+          admin: {
+            listUsers: async () => {
+              throw new TypeError("fetch failed");
+            },
+          },
+        },
+      },
+      repository: {
+        getAuthSession: async (user: any) => ({ user, profile: {} }),
+      },
+    } as any;
+
+    await assert.rejects(
+      () =>
+        resolveRequestAuth(context, {
+          headers: { "x-brilhio-dev-user-email": "demo@brilhio.local" },
+        } as any),
+      /Local development auth could not resolve the dev user/,
+    );
   });
 });
 
