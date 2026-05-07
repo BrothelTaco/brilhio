@@ -161,20 +161,22 @@ export default function BillingPage() {
               </article>
             </div>
 
-            <button
-              className="brilhio-button brilhio-button-primary"
-              onClick={startCheckout}
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Opening checkout..." : "Open Stripe checkout"}
-            </button>
-            <button
-              className="brilhio-button brilhio-button-secondary"
-              onClick={openCustomerPortal}
-              disabled={portalStatus === "loading"}
-            >
-              {portalStatus === "loading" ? "Opening portal..." : "Manage billing"}
-            </button>
+            <div className="action-row">
+              <button
+                className="brilhio-button brilhio-button-primary"
+                onClick={startCheckout}
+                disabled={status === "loading"}
+              >
+                {status === "loading" ? "Opening checkout..." : "Open Stripe checkout"}
+              </button>
+              <button
+                className="brilhio-button brilhio-button-secondary"
+                onClick={openCustomerPortal}
+                disabled={portalStatus === "loading"}
+              >
+                {portalStatus === "loading" ? "Opening portal..." : "Manage billing"}
+              </button>
+            </div>
           </section>
         </div>
       </section>

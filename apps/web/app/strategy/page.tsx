@@ -142,7 +142,7 @@ export default function StrategyPage() {
 
   return (
     <ProductShell activePath="/strategy">
-      <div className="surface-head" style={{ marginBottom: "1.5rem" }}>
+      <div className="surface-head page-heading">
         <div>
           <p className="brilhio-eyebrow">Media Strategy</p>
           <h1>Strategy settings</h1>
@@ -172,6 +172,7 @@ export default function StrategyPage() {
               <button
                 key={type}
                 className={`capability-chip capability-chip-lg ${profile.brandType === type ? "capability-chip-selected" : ""}`}
+                aria-pressed={profile.brandType === type}
                 onClick={() => update({ ...profile, brandType: type })}
                 disabled={loadStatus === "loading"}
               >
@@ -196,6 +197,7 @@ export default function StrategyPage() {
               <button
                 key={goal.value}
                 className={`goal-card ${profile.primaryGoal === goal.value ? "goal-card-selected" : ""}`}
+                aria-pressed={profile.primaryGoal === goal.value}
                 onClick={() => update({ ...profile, primaryGoal: goal.value })}
                 disabled={loadStatus === "loading"}
               >
@@ -221,6 +223,7 @@ export default function StrategyPage() {
               <button
                 key={freq.value}
                 className={`frequency-card ${profile.postingFrequency === freq.value ? "frequency-card-selected" : ""}`}
+                aria-pressed={profile.postingFrequency === freq.value}
                 onClick={() => update({ ...profile, postingFrequency: freq.value })}
                 disabled={loadStatus === "loading"}
               >

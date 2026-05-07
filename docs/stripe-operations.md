@@ -15,6 +15,10 @@ Use the signing secret from that endpoint as `STRIPE_WEBHOOK_SECRET` in the API 
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
+Set `STRIPE_PRICE_ID` to the recurring Price ID from Stripe, which starts with
+`price_`. Do not use the Product ID, which starts with `prod_`; Checkout
+Sessions bill against prices, not products.
+
 Do not enable `REQUIRE_SUBSCRIPTION=true` until the endpoint is deployed, the secret is set, and a test checkout has updated the user's `profiles.subscription_status`. After that live check succeeds, set `SUBSCRIPTION_ENFORCEMENT_CONFIRMED=true` in the API environment.
 
 Before enabling subscription enforcement, call:

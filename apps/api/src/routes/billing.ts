@@ -67,6 +67,28 @@ function getHeaderValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function checkoutConfigurationError(config: {
+  stripeSecretKey: string | null;
+  stripePriceId: string | null;
+  webAppUrl: string | null;
+}) {
+  const missing = [
+    !config.stripeSecretKey ? "STRIPE_SECRET_KEY" : null,
+    !config.stripePriceId ? "STRIPE_PRICE_ID" : null,
+    !config.webAppUrl ? "WEB_APP_URL" : null,
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return `Stripe checkout is not configured. Set ${missing.join(", ")}.`;
+  }
+
+  if (!config.stripePriceId!.startsWith("price_")) {
+    return "STRIPE_PRICE_ID must be a Stripe Price ID that starts with price_, not a Product ID.";
+  }
+
+  return null;
+}
+
 export function verifyStripeSignature(payload: string, signatureHeader: string, secret: string) {
   const parts = Object.fromEntries(
     signatureHeader.split(",").map((part) => {
@@ -202,13 +224,17 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: app.requireAuth },
     async (request, reply) => {
       const { stripeSecretKey, stripePriceId, webAppUrl } = app.brilhio.config;
-      if (!stripeSecretKey || !stripePriceId || !webAppUrl) {
+      const configurationError = checkoutConfigurationError({
+        stripeSecretKey,
+        stripePriceId,
+        webAppUrl,
+      });
+      if (configurationError) {
         reply.code(501);
-        return {
-          error:
-            "Stripe checkout is not configured. Set STRIPE_SECRET_KEY, STRIPE_PRICE_ID, and WEB_APP_URL.",
-        };
+        return { error: configurationError };
       }
+      const configuredStripeSecretKey = stripeSecretKey!;
+      const configuredStripePriceId = stripePriceId!;
 
       const { user, session } = request.brilhioAuth!;
       const body = requestBodyObject(request.body);
@@ -225,7 +251,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
       if (!stripeCustomerId) {
         try {
           const customer = await stripePostRequest<{ id: string }>(
-            stripeSecretKey,
+            configuredStripeSecretKey,
             "customers",
             {
               email: user.email ?? session.profile.email,
@@ -252,12 +278,12 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const checkout = await stripePostRequest<{ id: string; url: string | null }>(
-        stripeSecretKey,
+        configuredStripeSecretKey,
         "checkout/sessions",
         {
           mode: "subscription",
           customer: stripeCustomerId,
-          "line_items[0][price]": stripePriceId,
+          "line_items[0][price]": configuredStripePriceId,
           "line_items[0][quantity]": "1",
           success_url: successUrl,
           cancel_url: cancelUrl,

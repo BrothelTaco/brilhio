@@ -39,7 +39,8 @@ production deployment, in filename order:
 10. `20260506000000_provider_oauth_states.sql`
 11. `20260506000001_auth_payment_hardening.sql`
 12. `20260506000002_onboarding_completed.sql`
-13. `20260507000000_api_role_grants.sql`
+13. `20260506000003_slim_strategy_profile.sql`
+14. `20260507000000_api_role_grants.sql`
 
 After applying migrations and setting environment variables, check API readiness
 at `/health/readiness`. It verifies key config and the tables needed by billing,

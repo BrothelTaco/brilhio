@@ -176,6 +176,7 @@ export default function OnboardingPage() {
                 <button
                   key={type}
                   className={`capability-chip capability-chip-lg ${profile.brandType === type ? "capability-chip-selected" : ""}`}
+                  aria-pressed={profile.brandType === type}
                   onClick={() => setProfile({ ...profile, brandType: type })}
                 >
                   {type}
@@ -201,6 +202,7 @@ export default function OnboardingPage() {
                 <button
                   key={goal.value}
                   className={`goal-card ${profile.primaryGoal === goal.value ? "goal-card-selected" : ""}`}
+                  aria-pressed={profile.primaryGoal === goal.value}
                   onClick={() => setProfile({ ...profile, primaryGoal: goal.value })}
                 >
                   <strong>{goal.label}</strong>
@@ -234,6 +236,7 @@ export default function OnboardingPage() {
                 <button
                   key={freq.value}
                   className={`frequency-card ${profile.postingFrequency === freq.value ? "frequency-card-selected" : ""}`}
+                  aria-pressed={profile.postingFrequency === freq.value}
                   onClick={() => setProfile({ ...profile, postingFrequency: freq.value })}
                 >
                   <strong>{freq.label}</strong>

@@ -2320,3 +2320,251 @@ body {
 .modal-overlay {
   background: rgba(0, 0, 0, 0.22);
 }
+
+/* Header rhythm: use roomy text measures instead of narrow editorial columns. */
+.auth-story h1 {
+  max-width: clamp(520px, 52vw, 760px);
+}
+
+.auth-story > p {
+  max-width: min(68ch, 100%);
+}
+
+.page-heading {
+  margin-bottom: 0;
+}
+
+.page-header > div,
+.page-heading > div,
+.onboarding-header > div {
+  max-width: 820px;
+}
+
+.page-header h1,
+.page-heading h1,
+.onboarding-header h1 {
+  max-width: 760px;
+}
+
+.page-heading h1 {
+  margin: 6px 0 10px;
+  font-size: 40px;
+  line-height: 1.08;
+}
+
+.page-header p:last-child,
+.page-heading p:last-child,
+.onboarding-header p:last-child {
+  max-width: 72ch;
+}
+
+@media (max-width: 720px) {
+  .auth-story h1,
+  .page-header h1,
+  .page-heading h1,
+  .onboarding-header h1 {
+    max-width: none;
+  }
+}
+
+/* Choice and action spacing: consistent breathing room around decisions. */
+.action-row,
+.wizard-actions,
+.inline-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-24);
+}
+
+.modal-actions {
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-16);
+}
+
+.modal-primary-actions {
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+.onboarding-wizard {
+  width: min(1040px, 100%);
+}
+
+.onboarding-step {
+  max-width: 960px;
+  margin-top: var(--spacing-20);
+}
+
+.chip-row {
+  gap: 10px;
+  margin-top: var(--spacing-16);
+}
+
+.wizard-actions {
+  margin-top: var(--spacing-24);
+}
+
+.goal-card-grid,
+.frequency-card-grid {
+  display: grid;
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-20);
+}
+
+.goal-card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.frequency-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.goal-card,
+.frequency-card {
+  position: relative;
+  appearance: none;
+  display: flex;
+  min-width: 0;
+  min-height: 164px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-20);
+  border: 1px solid var(--color-charcoal-grey);
+  border-radius: var(--radius-cards);
+  background: #ffffff;
+  color: var(--brilhio-text);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.goal-card:hover,
+.frequency-card:hover {
+  border-color: var(--color-muted-ash);
+  background: color-mix(in srgb, var(--color-deep-slate) 36%, #ffffff);
+  transform: translateY(-1px);
+}
+
+.goal-card:focus-visible,
+.frequency-card:focus-visible {
+  outline: 2px solid var(--brilhio-text);
+  outline-offset: 3px;
+}
+
+.goal-card-selected,
+.frequency-card-selected {
+  border-color: var(--brilhio-text);
+  background: color-mix(in srgb, var(--color-aether-blue) 14%, #ffffff);
+  box-shadow:
+    inset 0 0 0 2px var(--brilhio-text),
+    0 10px 24px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card-selected::after,
+.frequency-card-selected::after {
+  content: "Selected";
+  position: absolute;
+  top: var(--spacing-12);
+  right: var(--spacing-12);
+  border-radius: var(--radius-pill);
+  padding: 4px 9px;
+  background: var(--brilhio-text);
+  color: var(--brilhio-button-text);
+  font-size: 11px;
+  font-weight: var(--font-weight-w590);
+  letter-spacing: 0.02em;
+}
+
+.goal-card strong,
+.frequency-card strong {
+  font-size: 1rem;
+  font-weight: var(--font-weight-w590);
+  line-height: 1.35;
+}
+
+.goal-card p,
+.frequency-card p {
+  margin: 0;
+  color: var(--color-storm-cloud);
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+.frequency-detail {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: var(--radius-badges);
+  padding: 3px var(--spacing-8);
+  background: var(--color-gunmetal);
+  color: var(--color-storm-cloud);
+  font-size: 11px;
+  font-weight: var(--font-weight-w510);
+}
+
+.capability-chip {
+  appearance: none;
+  border: 1px solid var(--color-charcoal-grey);
+  border-radius: var(--radius-pill);
+  padding: 7px var(--spacing-12);
+  background: #ffffff;
+  color: var(--brilhio-text);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: var(--font-weight-w510);
+  line-height: 1.25;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.capability-chip:hover {
+  border-color: var(--color-muted-ash);
+  background: color-mix(in srgb, var(--color-deep-slate) 36%, #ffffff);
+  transform: translateY(-1px);
+}
+
+.capability-chip:focus-visible {
+  outline: 2px solid var(--brilhio-text);
+  outline-offset: 3px;
+}
+
+.capability-chip-selected,
+.capability-chip-alt {
+  border-color: var(--brilhio-text);
+  background: color-mix(in srgb, var(--color-aether-blue) 14%, #ffffff);
+  color: var(--brilhio-text);
+  box-shadow:
+    inset 0 0 0 1px var(--brilhio-text),
+    var(--shadow-sm);
+}
+
+@media (max-width: 980px) {
+  .goal-card-grid,
+  .frequency-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-card,
+  .frequency-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .action-row,
+  .wizard-actions,
+  .inline-actions,
+  .modal-actions {
+    align-items: stretch;
+  }
+}
