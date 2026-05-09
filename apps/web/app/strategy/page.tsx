@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProductShell } from "../ui/product-shell";
 import { apiFetch } from "../../lib/api-client";
 
@@ -70,6 +70,8 @@ type PostingFrequency = (typeof POSTING_FREQUENCIES)[number]["value"];
 
 type StrategyProfile = {
   brandType: BrandType | null;
+  brandDescription: string | null;
+  audienceDescription: string | null;
   primaryGoal: PrimaryGoal | null;
   postingFrequency: PostingFrequency | null;
   brandBrief: string | null;
@@ -79,6 +81,8 @@ type StrategyProfile = {
 export default function StrategyPage() {
   const [profile, setProfile] = useState<StrategyProfile>({
     brandType: null,
+    brandDescription: null,
+    audienceDescription: null,
     primaryGoal: null,
     postingFrequency: null,
     brandBrief: null,
@@ -86,6 +90,12 @@ export default function StrategyPage() {
   });
   const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | "error">("loading");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [briefEditMode, setBriefEditMode] = useState(false);
+  const [briefDraft, setBriefDraft] = useState("");
+  const [briefSaving, setBriefSaving] = useState(false);
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<StrategyProfile | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -96,6 +106,8 @@ export default function StrategyPage() {
         if (json?.data) {
           setProfile({
             brandType: json.data.brandType ?? null,
+            brandDescription: json.data.brandDescription ?? null,
+            audienceDescription: json.data.audienceDescription ?? null,
             primaryGoal: json.data.primaryGoal ?? null,
             postingFrequency: json.data.postingFrequency ?? null,
             brandBrief: json.data.brandBrief ?? null,
@@ -110,7 +122,7 @@ export default function StrategyPage() {
     return () => { active = false; };
   }, []);
 
-  async function save(next: StrategyProfile) {
+  async function flushSave(next: StrategyProfile) {
     setSaveStatus("saving");
     try {
       const res = await apiFetch("/api/me/strategy-profile", {
@@ -120,6 +132,8 @@ export default function StrategyPage() {
           brandType: next.brandType,
           primaryGoal: next.primaryGoal,
           postingFrequency: next.postingFrequency,
+          brandDescription: next.brandDescription ?? null,
+          audienceDescription: next.audienceDescription ?? null,
         }),
       });
       setSaveStatus(res.ok ? "saved" : "error");
@@ -131,7 +145,42 @@ export default function StrategyPage() {
 
   function update(next: StrategyProfile) {
     setProfile(next);
-    void save(next);
+    pendingRef.current = next;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (pendingRef.current) void flushSave(pendingRef.current);
+    }, 600);
+  }
+
+  function updateImmediate(next: StrategyProfile) {
+    setProfile(next);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    void flushSave(next);
+  }
+
+  async function saveBriefEdit() {
+    setBriefSaving(true);
+    try {
+      const res = await apiFetch("/api/me/strategy-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandType: profile.brandType,
+          primaryGoal: profile.primaryGoal,
+          postingFrequency: profile.postingFrequency,
+          brandDescription: profile.brandDescription ?? null,
+          audienceDescription: profile.audienceDescription ?? null,
+          brandBrief: briefDraft,
+        }),
+      });
+      if (res.ok) {
+        setProfile((p) => ({ ...p, brandBrief: briefDraft }));
+        setBriefEditMode(false);
+      }
+    } finally {
+      setBriefSaving(false);
+    }
   }
 
   const saveBadge =
@@ -147,7 +196,7 @@ export default function StrategyPage() {
           <p className="brilhio-eyebrow">Media Strategy</p>
           <h1>Strategy settings</h1>
           <p className="surface-body-text">
-            These three settings drive all AI recommendations, caption voice, and how many calendar slots are generated each week. Changes take effect on the next calendar build.
+            These settings drive all AI recommendations, caption voice, and how many calendar slots are generated each week. Changes take effect on the next calendar build.
           </p>
         </div>
         {loadStatus === "loading"
@@ -173,13 +222,46 @@ export default function StrategyPage() {
                 key={type}
                 className={`capability-chip capability-chip-lg ${profile.brandType === type ? "capability-chip-selected" : ""}`}
                 aria-pressed={profile.brandType === type}
-                onClick={() => update({ ...profile, brandType: type })}
+                onClick={() => updateImmediate({ ...profile, brandType: type })}
                 disabled={loadStatus === "loading"}
               >
                 {type}
               </button>
             ))}
           </div>
+          <div style={{ marginTop: "1.25rem" }}>
+            <label className="brilhio-eyebrow" style={{ display: "block", marginBottom: "0.5rem" }}>
+              Describe your brand and vibe
+            </label>
+            <textarea
+              className="strategy-textarea"
+              placeholder="e.g. Warm, nostalgic Saturday-night-out energy. We're a 70s cover band that makes 45–65 year olds feel like it's 1978 again."
+              rows={3}
+              disabled={loadStatus === "loading"}
+              value={profile.brandDescription ?? ""}
+              onChange={(e) => update({ ...profile, brandDescription: e.target.value || null })}
+            />
+          </div>
+        </section>
+
+        <section className="brilhio-card surface-card">
+          <div className="surface-head">
+            <div>
+              <p className="brilhio-eyebrow">Audience</p>
+              <h2>Who are you trying to reach?</h2>
+            </div>
+          </div>
+          <p className="surface-body-text">
+            Describe the ideal person who discovers you. Their age, interests, lifestyle, and when they're online shapes when and how the AI schedules your posts.
+          </p>
+          <textarea
+            className="strategy-textarea"
+            placeholder="e.g. People 45–65 who grew up with classic rock, go out Thursday–Saturday nights, and are active on Facebook. They're planning a night out, not scrolling late."
+            rows={3}
+            disabled={loadStatus === "loading"}
+            value={profile.audienceDescription ?? ""}
+            onChange={(e) => update({ ...profile, audienceDescription: e.target.value || null })}
+          />
         </section>
 
         <section className="brilhio-card surface-card">
@@ -198,7 +280,7 @@ export default function StrategyPage() {
                 key={goal.value}
                 className={`goal-card ${profile.primaryGoal === goal.value ? "goal-card-selected" : ""}`}
                 aria-pressed={profile.primaryGoal === goal.value}
-                onClick={() => update({ ...profile, primaryGoal: goal.value })}
+                onClick={() => updateImmediate({ ...profile, primaryGoal: goal.value })}
                 disabled={loadStatus === "loading"}
               >
                 <strong>{goal.label}</strong>
@@ -224,7 +306,7 @@ export default function StrategyPage() {
                 key={freq.value}
                 className={`frequency-card ${profile.postingFrequency === freq.value ? "frequency-card-selected" : ""}`}
                 aria-pressed={profile.postingFrequency === freq.value}
-                onClick={() => update({ ...profile, postingFrequency: freq.value })}
+                onClick={() => updateImmediate({ ...profile, postingFrequency: freq.value })}
                 disabled={loadStatus === "loading"}
               >
                 <strong>{freq.label}</strong>
@@ -242,18 +324,56 @@ export default function StrategyPage() {
                 <p className="brilhio-eyebrow">Brand brief</p>
                 <h2>AI-generated summary</h2>
               </div>
-              {profile.brandBriefGeneratedAt ? (
-                <span className="state-badge status-info">
-                  Generated {new Date(profile.brandBriefGeneratedAt).toLocaleDateString()}
-                </span>
-              ) : null}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                {profile.brandBriefGeneratedAt ? (
+                  <span className="state-badge status-info">
+                    Generated {new Date(profile.brandBriefGeneratedAt).toLocaleDateString()}
+                  </span>
+                ) : null}
+                {!briefEditMode && (
+                  <button
+                    className="capability-chip"
+                    onClick={() => { setBriefDraft(profile.brandBrief ?? ""); setBriefEditMode(true); }}
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
             <p className="surface-body-text">
-              Used as context for all AI jobs. Regenerated automatically when you save changes here.
+              Used as context for all AI jobs. Edit it to correct any misreads — your edits become the source of truth.
             </p>
-            <p style={{ whiteSpace: "pre-wrap", fontSize: "0.875rem", lineHeight: "1.6" }}>
-              {profile.brandBrief}
-            </p>
+            {briefEditMode ? (
+              <>
+                <textarea
+                  className="strategy-textarea"
+                  rows={6}
+                  value={briefDraft}
+                  onChange={(e) => setBriefDraft(e.target.value)}
+                  style={{ marginBottom: "0.75rem" }}
+                />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    className="capability-chip capability-chip-selected"
+                    onClick={saveBriefEdit}
+                    disabled={briefSaving}
+                  >
+                    {briefSaving ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    className="capability-chip"
+                    onClick={() => setBriefEditMode(false)}
+                    disabled={briefSaving}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p style={{ whiteSpace: "pre-wrap", fontSize: "0.875rem", lineHeight: "1.6" }}>
+                {profile.brandBrief}
+              </p>
+            )}
           </section>
         ) : loadStatus === "ready" ? (
           <section className="brilhio-card surface-card">

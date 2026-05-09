@@ -69,6 +69,8 @@ function emptyStrategyProfile(userId: string): UserStrategyProfile {
     brandType: null,
     primaryGoal: null,
     postingFrequency: null,
+    brandDescription: null,
+    audienceDescription: null,
     brandBrief: null,
     brandBriefGeneratedAt: null,
     updatedAt: new Date().toISOString(),
@@ -80,6 +82,8 @@ function mapStrategyProfile(row: {
   brand_type: string | null;
   primary_goal: string | null;
   posting_frequency: string | null;
+  brand_description: string | null;
+  audience_description: string | null;
   brand_brief: string | null;
   brand_brief_generated_at: string | null;
   updated_at: string;
@@ -89,6 +93,8 @@ function mapStrategyProfile(row: {
     brandType: (row.brand_type as UserStrategyProfile["brandType"]) ?? null,
     primaryGoal: (row.primary_goal as UserStrategyProfile["primaryGoal"]) ?? null,
     postingFrequency: (row.posting_frequency as UserStrategyProfile["postingFrequency"]) ?? null,
+    brandDescription: row.brand_description,
+    audienceDescription: row.audience_description,
     brandBrief: row.brand_brief,
     brandBriefGeneratedAt: row.brand_brief_generated_at,
     updatedAt: row.updated_at,
@@ -368,13 +374,18 @@ export class MemoryRepository implements Repository {
     input: UpdateUserStrategyProfileInput,
   ): Promise<UserStrategyProfile> {
     const current = this.strategyProfiles.get(userId);
+    const brandBriefUpdated = input.brandBrief !== undefined;
     const updated: UserStrategyProfile = {
       userId,
       brandType: input.brandType,
       primaryGoal: input.primaryGoal,
       postingFrequency: input.postingFrequency,
-      brandBrief: current?.brandBrief ?? null,
-      brandBriefGeneratedAt: current?.brandBriefGeneratedAt ?? null,
+      brandDescription: input.brandDescription,
+      audienceDescription: input.audienceDescription,
+      brandBrief: brandBriefUpdated ? (input.brandBrief ?? null) : (current?.brandBrief ?? null),
+      brandBriefGeneratedAt: brandBriefUpdated
+        ? new Date().toISOString()
+        : (current?.brandBriefGeneratedAt ?? null),
       updatedAt: new Date().toISOString(),
     };
     this.strategyProfiles.set(userId, updated);
@@ -902,7 +913,7 @@ export class SupabaseRepository implements Repository {
   async getUserStrategyProfile(userId: string): Promise<UserStrategyProfile> {
     const { data, error } = await this.supabase
       .from("user_strategy_profiles")
-      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_description, audience_description, brand_brief, brand_brief_generated_at, updated_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -913,16 +924,24 @@ export class SupabaseRepository implements Repository {
     userId: string,
     input: UpdateUserStrategyProfileInput,
   ): Promise<UserStrategyProfile> {
+    const now = new Date().toISOString();
+    const upsertPayload: Record<string, unknown> = {
+      user_id: userId,
+      brand_type: input.brandType,
+      primary_goal: input.primaryGoal,
+      posting_frequency: input.postingFrequency,
+      brand_description: input.brandDescription,
+      audience_description: input.audienceDescription,
+      updated_at: now,
+    };
+    if (input.brandBrief !== undefined) {
+      upsertPayload.brand_brief = input.brandBrief;
+      upsertPayload.brand_brief_generated_at = now;
+    }
     const { data, error } = await this.supabase
       .from("user_strategy_profiles")
-      .upsert({
-        user_id: userId,
-        brand_type: input.brandType,
-        primary_goal: input.primaryGoal,
-        posting_frequency: input.postingFrequency,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" })
-      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
+      .upsert(upsertPayload, { onConflict: "user_id" })
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_description, audience_description, brand_brief, brand_brief_generated_at, updated_at")
       .single();
     if (error) throw new Error(error.message);
     return mapStrategyProfile(data);
@@ -937,7 +956,7 @@ export class SupabaseRepository implements Repository {
         brand_brief_generated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" })
-      .select("user_id, brand_type, primary_goal, posting_frequency, brand_brief, brand_brief_generated_at, updated_at")
+      .select("user_id, brand_type, primary_goal, posting_frequency, brand_description, audience_description, brand_brief, brand_brief_generated_at, updated_at")
       .single();
     if (error) throw new Error(error.message);
     return mapStrategyProfile(data);

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pnpm typecheck *)",
       "Bash(pnpm -w typecheck)",
-      "Bash(pnpm install *)"
+      "Bash(pnpm install *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jkins\\\\Projects\\\\brilhio\\\\brilhio\\\\supabase\" -Directory)"
     ]
   }
 }

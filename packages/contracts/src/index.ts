@@ -144,6 +144,8 @@ export const userStrategyProfileSchema = z.object({
   brandType: brandTypeSchema.nullable(),
   primaryGoal: primaryGoalSchema.nullable(),
   postingFrequency: postingFrequencySchema.nullable(),
+  brandDescription: z.string().nullable(),
+  audienceDescription: z.string().nullable(),
   brandBrief: z.string().nullable(),
   brandBriefGeneratedAt: z.string().nullable(),
   updatedAt: z.string().min(1),
@@ -383,6 +385,9 @@ export const updateUserStrategyProfileInputSchema = z.object({
   brandType: brandTypeSchema.nullable().default(null),
   primaryGoal: primaryGoalSchema.nullable().default(null),
   postingFrequency: postingFrequencySchema.nullable().default(null),
+  brandDescription: z.string().nullable().default(null),
+  audienceDescription: z.string().nullable().default(null),
+  brandBrief: z.string().nullable().optional(),
 });
 export type UpdateUserStrategyProfileInput = z.infer<
   typeof updateUserStrategyProfileInputSchema
