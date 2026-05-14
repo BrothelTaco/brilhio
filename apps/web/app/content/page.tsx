@@ -7,6 +7,7 @@ import { ProductShell } from "../ui/product-shell";
 
 export default function ContentPage() {
   const [data, setData] = useState<DashboardSnapshot | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string | null>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,6 +28,37 @@ export default function ContentPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!data?.mediaAssets.length) {
+      setMediaUrls({});
+      return;
+    }
+
+    let active = true;
+    const objectUrls: string[] = [];
+
+    void Promise.all(
+      data.mediaAssets.map(async (asset) => {
+        const response = await apiFetch(`/api/media-assets/${encodeURIComponent(asset.id)}/object`);
+        if (!response.ok) return [asset.id, null] as const;
+        const objectUrl = URL.createObjectURL(await response.blob());
+        objectUrls.push(objectUrl);
+        return [asset.id, objectUrl] as const;
+      }),
+    ).then((entries) => {
+      if (active) {
+        setMediaUrls(Object.fromEntries(entries));
+      } else {
+        objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      }
+    });
+
+    return () => {
+      active = false;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [data]);
 
   return (
     <ProductShell activePath="/content">
@@ -73,6 +105,21 @@ export default function ContentPage() {
             <div className="stack-list">
               {data.mediaAssets.map((asset) => (
                 <article key={asset.id} className="list-row list-row-stack">
+                  {mediaUrls[asset.id] && asset.kind === "image" ? (
+                    <img
+                      className="media-asset-preview"
+                      src={mediaUrls[asset.id] ?? ""}
+                      alt={asset.altText ?? asset.title}
+                    />
+                  ) : null}
+                  {mediaUrls[asset.id] && asset.kind === "video" ? (
+                    <video
+                      className="media-asset-preview"
+                      src={mediaUrls[asset.id] ?? ""}
+                      controls
+                      preload="metadata"
+                    />
+                  ) : null}
                   <div>
                     <strong>{asset.title}</strong>
                     <p>{asset.storagePath}</p>

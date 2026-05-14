@@ -21,6 +21,9 @@ export type SocialAccountStatus = z.infer<typeof socialAccountStatusSchema>;
 export const assetKindSchema = z.enum(["image", "video", "carousel", "document"]);
 export type AssetKind = z.infer<typeof assetKindSchema>;
 
+export const mediaStorageProviderSchema = z.enum(["r2", "memory"]);
+export type MediaStorageProvider = z.infer<typeof mediaStorageProviderSchema>;
+
 export const contentStageSchema = z.enum([
   "draft",
   "ready_for_review",
@@ -307,6 +310,13 @@ export const createMediaAssetInputSchema = z.object({
 });
 export type CreateMediaAssetInput = z.infer<typeof createMediaAssetInputSchema>;
 
+export const createMediaAssetRequestInputSchema = createMediaAssetInputSchema.omit({
+  userId: true,
+});
+export type CreateMediaAssetRequestInput = z.infer<
+  typeof createMediaAssetRequestInputSchema
+>;
+
 export const createMediaUploadSessionInputSchema = z.object({
   kind: assetKindSchema,
   title: z.string().min(1),
@@ -321,11 +331,15 @@ export type CreateMediaUploadSessionInput = z.infer<
 >;
 
 export const mediaUploadSessionSchema = z.object({
+  provider: mediaStorageProviderSchema,
   bucket: z.string().min(1),
   storagePath: z.string().min(1),
-  uploadToken: z.string().min(1),
-  uploadPath: z.string().min(1),
+  uploadUrl: z.string().url().nullable(),
+  uploadMethod: z.literal("PUT"),
+  uploadHeaders: z.record(z.string(), z.string()),
+  expiresAt: z.string().min(1).nullable(),
   contentType: z.string().min(1),
+  maxFileSizeBytes: z.number().int().positive(),
 });
 export type MediaUploadSession = z.infer<typeof mediaUploadSessionSchema>;
 

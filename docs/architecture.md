@@ -16,7 +16,7 @@
 - Session/auth resolution happens in `apps/api` and returns a current workspace context.
 - Queue persistence lives in `job_records`, while BullMQ handles dispatch and execution timing.
 - Provider connections are modeled as a shared catalog for Instagram, TikTok, Facebook, and X.
-- Media uploads use signed Supabase Storage upload sessions created by `apps/api`.
+- Media uploads use private Cloudflare R2 signed upload URLs created by `apps/api`, while Supabase remains the auth and database provider.
 - Provider publishing currently runs in explicit sandbox mode inside the worker.
 
 ## Shared packages
@@ -44,7 +44,7 @@ The worker is expected to own these flows:
 - Provider connection and capability HTTP entry belongs in `apps/api`.
 - Provider-specific publishing logic belongs in `apps/worker`.
 - Shared capability flags and constraints belong in `packages/contracts`.
-- Persisted provider state belongs in Supabase tables and storage.
+- Persisted provider state belongs in Supabase tables. User media objects belong in private Cloudflare R2 buckets, with Supabase storing ownership metadata.
 
 ## v1 product assumptions
 

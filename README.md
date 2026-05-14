@@ -73,7 +73,8 @@ pnpm build
 Copy `.env.example` and fill the production values before deployment:
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_STORAGE_BUCKET` for media uploads
+- Cloudflare R2 media storage: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET`
+- Optional R2 media controls: `R2_ENDPOINT`, `R2_SIGNED_URL_TTL_SECONDS`, and `MEDIA_MAX_FILE_SIZE_BYTES`
 - `APP_ENCRYPTION_KEY` for stored provider tokens
 - `REDIS_URL` for BullMQ workers
 - `OPENAI_API_KEY` and optional `OPENAI_MODEL` for AI worker jobs
@@ -105,7 +106,7 @@ Stripe webhook setup and local testing steps live in `docs/stripe-operations.md`
 - user-owned session/profile model backed by `profiles`
 - CRUD routes for media assets, content items, approval tasks, scheduled posts, and queued jobs
 - BullMQ queue integration with persisted `job_records`
-- signed upload session creation for Supabase Storage media uploads
+- private Cloudflare R2 upload URL creation and authenticated object reads for user-owned media
 - manual provider catalog and connection flow for Instagram, TikTok, Facebook, and X
 - sandbox worker publishing for the supported providers
 - web and mobile apps now fetch real session/dashboard data through authenticated API calls
@@ -117,7 +118,7 @@ Stripe webhook setup and local testing steps live in `docs/stripe-operations.md`
 ## Next implementation steps
 
 1. Replace sandbox provider publishing with live platform adapters and reviewed OAuth flows per provider.
-2. Add signed download URLs and richer media previews across web and mobile.
+2. Add richer media upload UX across web and mobile on top of the R2 signed upload session API.
 3. Add prompt/version management and evaluation coverage for AI generation.
 4. Add tests around queue processing, repository mappings, auth state, and provider flows.
 5. Add mobile-native media picking and upload UX on top of the signed upload session API.

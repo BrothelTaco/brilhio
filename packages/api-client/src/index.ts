@@ -4,7 +4,7 @@ import type {
   CreateProviderConnectionInput,
   CreateApprovalTaskInput,
   CreateContentItemInput,
-  CreateMediaAssetInput,
+  CreateMediaAssetRequestInput,
   DashboardSnapshot,
   JobRecord,
   MediaAsset,
@@ -106,7 +106,7 @@ export class BrilhioApiClient {
     return this.request<MediaAsset[]>("/api/me/media-assets");
   }
 
-  createMediaAsset(input: CreateMediaAssetInput) {
+  createMediaAsset(input: CreateMediaAssetRequestInput) {
     return this.request<MediaAsset>("/api/media-assets", {
       method: "POST",
       body: JSON.stringify(input),

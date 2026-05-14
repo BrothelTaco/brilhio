@@ -201,10 +201,6 @@ create table provider_webhooks (
   received_at timestamptz not null default now()
 );
 
-insert into storage.buckets (id, name, public)
-values ('media-assets', 'media-assets', false)
-on conflict (id) do nothing;
-
 create index workspace_members_user_idx on workspace_members (user_id, workspace_id);
 create index social_accounts_workspace_idx on social_accounts (workspace_id, platform);
 create index media_assets_workspace_idx on media_assets (workspace_id, created_at desc);

@@ -5,7 +5,7 @@ Fastify API scaffold for:
 - authenticated sessions
 - current workspace selection
 - media assets
-- signed media upload sessions
+- private Cloudflare R2 media upload sessions and authenticated object reads
 - content items
 - approval tasks
 - scheduled posts
@@ -33,6 +33,7 @@ pnpm --filter @brilhio/api dev
 - `POST /api/providers/:platform/oauth/start`
 - `GET /api/providers/:platform/oauth/callback`
 - `POST /api/media-assets/upload-session`
+- `GET /api/media-assets/:mediaAssetId/object`
 - `POST /api/media-assets`
 - `POST /api/content-items`
 - `POST /api/approval-tasks`

@@ -122,8 +122,7 @@ export interface Repository {
   listOverdueJobRecords(): Promise<JobRecord[]>;
   getDashboard(userId: string): Promise<DashboardSnapshot>;
   listMediaAssets(userId: string): Promise<MediaAsset[]>;
-  getMediaAssetsByIds(ids: string[]): Promise<MediaAsset[]>;
-  createSignedMediaUrl(storagePath: string, expiresInSeconds: number): Promise<string | null>;
+  getMediaAsset(userId: string, mediaAssetId: string): Promise<MediaAsset | null>;
   createMediaAsset(input: CreateMediaAssetInput): Promise<MediaAsset>;
   createContentItem(input: CreateContentItemInput): Promise<import("@brilhio/contracts").ContentItem>;
   createApprovalTask(input: CreateApprovalTaskInput): Promise<ApprovalTask>;

@@ -8,6 +8,7 @@ import {
   type Repository,
 } from "@brilhio/backend";
 import type { JobPayload, JobRecord, QueueJobInput } from "@brilhio/contracts";
+import { createMediaStorage, type MediaStorage } from "./storage";
 
 export type AppConfig = {
   port: number;
@@ -23,6 +24,12 @@ export type AppConfig = {
   apiPublicUrl: string | null;
   webAppUrl: string | null;
   storageBucket: string;
+  r2AccountId: string | null;
+  r2AccessKeyId: string | null;
+  r2SecretAccessKey: string | null;
+  r2Endpoint: string | null;
+  r2SignedUrlTtlSeconds: number;
+  mediaMaxFileSizeBytes: number;
   stripeSecretKey: string | null;
   stripePriceId: string | null;
   stripeWebhookSecret: string | null;
@@ -37,6 +44,7 @@ export type AppContext = {
   repository: Repository;
   supabaseAdmin: SupabaseClient | null;
   queue: ReturnType<typeof createBrilhioQueue> | null;
+  mediaStorage: MediaStorage;
 };
 
 export function readAppConfig(env = process.env): AppConfig {
@@ -60,7 +68,17 @@ export function readAppConfig(env = process.env): AppConfig {
       env.NEXT_PUBLIC_API_URL ??
       null,
     webAppUrl: env.WEB_APP_URL ?? null,
-    storageBucket: env.SUPABASE_STORAGE_BUCKET ?? "media-assets",
+    storageBucket: env.R2_BUCKET ?? "media-assets",
+    r2AccountId: env.R2_ACCOUNT_ID ?? null,
+    r2AccessKeyId: env.R2_ACCESS_KEY_ID ?? null,
+    r2SecretAccessKey: env.R2_SECRET_ACCESS_KEY ?? null,
+    r2Endpoint:
+      env.R2_ENDPOINT ??
+      (env.R2_ACCOUNT_ID
+        ? `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+        : null),
+    r2SignedUrlTtlSeconds: Number(env.R2_SIGNED_URL_TTL_SECONDS ?? 300),
+    mediaMaxFileSizeBytes: Number(env.MEDIA_MAX_FILE_SIZE_BYTES ?? 104_857_600),
     stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
     stripePriceId: env.STRIPE_PRICE_ID ?? null,
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
@@ -96,8 +114,9 @@ export function createAppContext(config = readAppConfig()): AppContext {
   const queue = isQueueConfigured(config.redisUrl)
     ? createBrilhioQueue(config.redisUrl!)
     : null;
+  const mediaStorage = createMediaStorage(config);
 
-  return { config, repository, supabaseAdmin, queue };
+  return { config, repository, supabaseAdmin, queue, mediaStorage };
 }
 
 export function buildRuntimeJobPayload(record: JobRecord, input: QueueJobInput): JobPayload {

@@ -989,6 +989,15 @@
   line-height: 1.55;
 }
 
+.media-asset-preview {
+  width: 96px;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--brilhio-text) 8%, transparent);
+}
+
 .insight-card span {
   display: block;
   margin-top: 10px;

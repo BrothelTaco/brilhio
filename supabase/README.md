@@ -3,7 +3,7 @@
 The migration set creates the product domain for:
 
 - connected social accounts
-- media assets
+- media asset metadata; private object storage lives in Cloudflare R2
 - content items
 - scheduled posts
 - AI suggestions

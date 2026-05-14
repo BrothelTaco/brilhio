@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   createApprovalTaskInputSchema,
   createContentItemInputSchema,
-  createMediaAssetInputSchema,
+  createMediaAssetRequestInputSchema,
   createMediaUploadSessionInputSchema,
   queueJobInputSchema,
   schedulePostRequestInputSchema,
@@ -11,6 +11,7 @@ import {
 } from "@brilhio/contracts";
 import { localToUtc } from "@brilhio/backend";
 import { persistAndEnqueueJob } from "../context";
+import { isAllowedMediaContentType } from "../storage";
 
 function sanitizeFileSegment(value: string) {
   return value
@@ -19,6 +20,16 @@ function sanitizeFileSegment(value: string) {
     .replace(/[^a-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+function isSupportedUploadKind(kind: string) {
+  return kind === "image" || kind === "video";
+}
+
+function contentTypeMatchesKind(kind: string, contentType: string) {
+  if (kind === "image") return contentType.startsWith("image/");
+  if (kind === "video") return contentType.startsWith("video/");
+  return false;
 }
 
 export const contentRoutes: FastifyPluginAsync = async (app) => {
@@ -33,43 +44,105 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const userId = request.brilhioAuth!.user.id;
+      const contentType = parsed.data.contentType.toLowerCase();
+
+      if (!isSupportedUploadKind(parsed.data.kind)) {
+        reply.code(400);
+        return { error: "Only image and short video uploads are supported right now." };
+      }
+
+      if (
+        !isAllowedMediaContentType(contentType) ||
+        !contentTypeMatchesKind(parsed.data.kind, contentType)
+      ) {
+        reply.code(400);
+        return { error: "Unsupported media content type." };
+      }
+
+      if (parsed.data.fileSizeBytes > app.brilhio.mediaStorage.maxFileSizeBytes) {
+        reply.code(413);
+        return {
+          error: `Media files must be ${app.brilhio.mediaStorage.maxFileSizeBytes} bytes or smaller.`,
+        };
+      }
+
       const extensionIndex = parsed.data.fileName.lastIndexOf(".");
       const extension = extensionIndex >= 0
         ? parsed.data.fileName.slice(extensionIndex).toLowerCase()
         : "";
       const path = [userId, "uploads", `${randomUUID()}-${sanitizeFileSegment(parsed.data.title)}${extension}`].join("/");
 
-      if (!app.brilhio.supabaseAdmin) {
+      if (app.brilhio.mediaStorage.mode === "memory") {
         return {
           data: {
-            bucket: app.brilhio.config.storageBucket,
+            provider: "memory",
+            bucket: app.brilhio.mediaStorage.bucket,
             storagePath: path,
-            uploadPath: path,
-            uploadToken: `memory-upload-${randomUUID()}`,
-            contentType: parsed.data.contentType,
+            uploadUrl: null,
+            uploadMethod: "PUT",
+            uploadHeaders: {},
+            expiresAt: null,
+            contentType,
+            maxFileSizeBytes: app.brilhio.mediaStorage.maxFileSizeBytes,
           },
           meta: { storageMode: "memory" },
         };
       }
 
-      const { data, error } = await app.brilhio.supabaseAdmin.storage
-        .from(app.brilhio.config.storageBucket)
-        .createSignedUploadUrl(path, { upsert: false });
-
-      if (error || !data?.token) {
-        reply.code(500);
-        return { error: error?.message ?? "Failed to create the upload session." };
-      }
+      const upload = await app.brilhio.mediaStorage.createUploadUrl({
+        key: path,
+        contentType,
+        contentLength: parsed.data.fileSizeBytes,
+      });
 
       return {
         data: {
-          bucket: app.brilhio.config.storageBucket,
+          provider: "r2",
+          bucket: app.brilhio.mediaStorage.bucket,
           storagePath: path,
-          uploadPath: path,
-          uploadToken: data.token,
-          contentType: parsed.data.contentType,
+          uploadUrl: upload.url,
+          uploadMethod: "PUT",
+          uploadHeaders: {
+            "Content-Type": contentType,
+          },
+          expiresAt: upload.expiresAt,
+          contentType,
+          maxFileSizeBytes: app.brilhio.mediaStorage.maxFileSizeBytes,
         },
       };
+    },
+  );
+
+  app.get<{ Params: { mediaAssetId: string } }>(
+    "/media-assets/:mediaAssetId/object",
+    { preHandler: app.requireSubscription },
+    async (request, reply) => {
+      const asset = await app.brilhio.repository.getMediaAsset(
+        request.brilhioAuth!.user.id,
+        request.params.mediaAssetId,
+      );
+
+      if (!asset) {
+        reply.code(404);
+        return { error: "Media asset not found." };
+      }
+
+      if (app.brilhio.mediaStorage.mode === "memory") {
+        reply.code(404);
+        return { error: "Media object storage is not configured." };
+      }
+
+      const object = await app.brilhio.mediaStorage.getObject({
+        key: asset.storagePath,
+      });
+
+      reply.header("Content-Type", object.contentType ?? "application/octet-stream");
+      reply.header("Cache-Control", "private, max-age=60");
+      if (object.contentLength !== null) {
+        reply.header("Content-Length", object.contentLength);
+      }
+
+      return reply.send(object.body);
     },
   );
 
@@ -77,7 +150,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
     "/media-assets",
     { preHandler: app.requireSubscription },
     async (request, reply) => {
-      const parsed = createMediaAssetInputSchema.safeParse(request.body);
+      const parsed = createMediaAssetRequestInputSchema.safeParse(request.body);
       if (!parsed.success) {
         reply.code(400);
         return { error: parsed.error.flatten() };
